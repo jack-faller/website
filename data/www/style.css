@@ -1,7 +1,7 @@
-@font-face { font-family: Charter; src: url('Charter Regular.otf');     font-weight: normal; font-style: normal; } 
-@font-face { font-family: Charter; src: url('Charter Bold.otf');        font-weight: bold;   font-style: normal; } 
-@font-face { font-family: Charter; src: url('Charter Italic.otf');      font-weight: normal; font-style: italic; }
-@font-face { font-family: Charter; src: url('Charter Bold Italic.otf'); font-weight: bold;   font-style: italic; }
+@font-face { font-family: Crimson; src: url('Crimson-Roman.otf');       font-weight: normal; font-style: normal; } 
+@font-face { font-family: Crimson; src: url('Crimson-Bold.otf');        font-weight: bold;   font-style: normal; } 
+@font-face { font-family: Crimson; src: url('Crimson-Italic.otf');      font-weight: normal; font-style: italic; }
+@font-face { font-family: Crimson; src: url('Crimson-Bold Italic.otf'); font-weight: bold;   font-style: italic; }
 
 :root {
 	--text-width: 925px;
@@ -9,9 +9,8 @@
 }
 
 body {
-	font-family: Charter, serif;
-	font-size: 20px;
-	line-height: 21px;
+	font-family: Crimson, serif;
+	font-size: 23px;
 	margin: 0px;
 	background-image: url('images/tiling_patern.jpg');
 

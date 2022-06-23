@@ -20,11 +20,20 @@ body {
 	padding-bottom: min(8vw, 50px);
 }
 
-.stripe {
-	width: min(var(--text-margin) + var(--text-width), 80vw);
+main {
+	position: relative;
+	width: min(var(--text-width), 80vw + var(--text-margin));
+	padding: var(--text-margin);
 	background-color: rgba(255,255,255,0.9);
 }
 
-main {
-	margin: var(--text-margin);
+h1 {
+	text-align: center;
+}
+
+.backarrow {
+	float: right;
+	text-decoration: none;
+	color: inherit;
+	position: absolute;
 }

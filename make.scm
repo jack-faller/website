@@ -1,7 +1,15 @@
 #!/usr/bin/env guile
 !#
 
-(use-modules (srfi srfi-1) (srfi srfi-9) (ice-9 hash-table) (ice-9 match) (ice-9 ftw) (ice-9 regex) (ice-9 textual-ports))
+(use-modules (srfi srfi-1)
+			 (srfi srfi-9)
+			 (ice-9 rdelim)
+			 (ice-9 hash-table)
+			 (ice-9 match)
+			 (ice-9 ftw)
+			 (ice-9 regex)
+			 (ice-9 textual-ports))
+
 (define (getfile file) (call-with-input-file file get-string-all))
 (define (putfile file string) (call-with-output-file file (λ (port) (put-string port string))))
 
@@ -105,18 +113,38 @@
 									   ("CONTENT" . ,content)))))
   (ftw in-dir
 	   (λ (in-file _ flag)
-		 (when (and (eq? flag 'regular) (not (string=? in-file "pages/index.html")))
+		 (when (eq? flag 'regular)
 		   (let* ((file-name (substring in-file (string-length in-dir)))
 				  (out-file (string-append out-dir file-name)))
 			 (rule (list out-file) (list template-file in-file) instance)))
 		 #t)))
 
 (make-template-rules "templates/generated/post.html" "posts/" "data/www/post/")
-(make-template-rules "templates/generated/page.html" "pages/" "data/www/")
 
-(rule '("data/www/index.html") '("templates/template.html" "pages/index.html")
+(rule '("data/www/error404.html") '("templates/template.html" "pages/error404.html")
 	  (λ (out-file template in-file)
 		(putfile out-file (handle-defs template `(("CONTENT" . ,(getfile in-file)))))))
+
+(define *index-post-count** 10)
+
+(rule '("data/www/index.html") '("templates/template.html" "pages/index.html" "pages/post-list.html")
+	  (λ (out-file template in-file post-list)
+		(define file (open-input-file post-list))
+		(define line "")
+		(define recent-posts
+		  (let loop ((output "") (times *index-post-count**))
+			(if (or (= times 0) (eof-object?
+								 (begin (set! line (read-line file))
+										line)))
+				output
+				(loop (string-append output line) (- times 1)))))
+		(define content (handle-defs in-file `(("RECENT-POSTS" . ,recent-posts))))
+		(putfile out-file (handle-defs template `(("CONTENT" . ,content))))))
+
+(rule '("data/www/posts.html") '("templates/template.html" "pages/posts.html" "pages/post-list.html")
+	  (λ (out-file template in-file post-list)
+		(define content (handle-defs in-file `(("POSTS" . ,(getfile post-list)))))
+		(putfile out-file (handle-defs template `(("CONTENT" . ,content))))))
 
 (rule '("templates/generated/post.html") '("templates/template.html")
 	  (λ (post template)

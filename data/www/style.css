@@ -37,3 +37,11 @@ h1 {
 	color: inherit;
 	position: absolute;
 }
+
+a {
+	color: #000050;
+}
+
+a:visited {
+	color: #480048;
+}

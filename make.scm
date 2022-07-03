@@ -144,7 +144,7 @@
 (rule '("data/www/posts.html") '("templates/template.html" "pages/posts.html" "pages/post-list.html")
 	  (λ (out-file template in-file post-list)
 		(define content (handle-defs in-file `(("POSTS" . ,(getfile post-list)))))
-		(putfile out-file (handle-defs template `(("CONTENT" . ,content))))))
+		(putfile out-file (handle-defs template `("BACK-ARROW" ("CONTENT" . ,content))))))
 
 (rule '("templates/generated/post.html") '("templates/template.html")
 	  (λ (post template)

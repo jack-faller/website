@@ -45,3 +45,12 @@ a {
 a:visited {
 	color: #480048;
 }
+
+pre {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+code {
+	font-size: 18px;
+}

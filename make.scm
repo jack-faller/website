@@ -104,22 +104,42 @@
   (subst-defs (filter-if-defs file (map (λ (x) (if (pair? x) (car x) x)) defs))
 			  (filter pair? defs)))
 
-(define (make-template-rules template-file in-dir out-dir)
-  (define (instance output-file template-file input-file)
-	(define post-name (regexp-substitute #f (string-match "\\.html$" input-file) 'pre))
-	(define content (getfile input-file))
-	(putfile output-file (handle-defs template-file
-									 `(("POSTNAME" . ,post-name)
-									   ("CONTENT" . ,content)))))
+(begin
+  (define template-file "templates/generated/post.html")
+  (define code-file "templates/generated/code-output.html")
+  (define in-dir "posts/")
+  (define code-dir "code/")
+  (define out-dir "data/www/post/")
   (ftw in-dir
 	   (λ (in-file _ flag)
 		 (when (eq? flag 'regular)
 		   (let* ((file-name (substring in-file (string-length in-dir)))
-				  (out-file (string-append out-dir file-name)))
-			 (rule (list out-file) (list template-file in-file) instance)))
+				  (out-file (string-append out-dir file-name))
+				  (post-name (match:substring (string-match "posts/(.*)\\.html$" in-file) 1))
+				  (code-dir (string-append code-dir post-name "/"))
+				  (code-files (map (λ (f) (string-append code-dir f))
+								   (scandir code-dir (λ (f) (not (string-match "^\\.+$" f)))))))
+			 (define (instance output-file template-file input-file . code-files)
+			   (define content (getfile input-file))
+			   (define (read-code match)
+				 (string-append
+				  "<pre><code>"
+				  (begin
+					(system* "highlight" "--fragment" "--inline-css" "--line-numbers"
+							 "--line-number-length" "3"
+							 (string-append code-dir (match:substring match 1))
+							 "-o" code-file "-O" "html")
+					(newline)
+					(getfile code-file))
+				  "</code></pre>"))
+			   (let* ((it (handle-defs template-file
+									   `(("POSTNAME" . ,post-name)
+										 ("CONTENT" . ,content))))
+					  (it (regexp-substitute/global #f "CODE-BLOCK[^\n]*\"([^\n]*)\"" it
+													'pre read-code 'post)))
+				 (putfile output-file it)))
+			 (rule (list out-file) (cons* template-file in-file code-files) instance)))
 		 #t)))
-
-(make-template-rules "templates/generated/post.html" "posts/" "data/www/post/")
 
 (rule '("data/www/error404.html") '("templates/template.html" "pages/error404.html")
 	  (λ (out-file template in-file)

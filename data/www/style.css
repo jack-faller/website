@@ -6,6 +6,8 @@
 :root {
 	--text-width: 925px;
 	--text-margin: 30px;
+	--page-bg: rgba(255,255,255,0.9);
+	--code-bg: rgb(215,215,215);
 }
 
 body {
@@ -24,7 +26,7 @@ main {
 	position: relative;
 	width: min(var(--text-width), 80vw + var(--text-margin));
 	padding: var(--text-margin);
-	background-color: rgba(255,255,255,0.9);
+	background-color: var(--page-bg);
 }
 
 h1 {
@@ -49,8 +51,17 @@ a:visited {
 pre {
 	white-space: pre-wrap;
 	word-break: break-all;
+	border-radius: 5px;
+	background-color: var(--code-bg);
+}
+
+code.block {
+	font-size: 18px;
+	background-color: transparent;
 }
 
 code {
 	font-size: 18px;
+	border-radius: 5px;
+	background-color: var(--code-bg);
 }

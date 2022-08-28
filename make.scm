@@ -123,7 +123,7 @@
 			   (define content (getfile input-file))
 			   (define (read-code match)
 				 (string-append
-				  "<pre><code>"
+				  "<pre><code class=\"block\">"
 				  (begin
 					(system* "highlight" "--fragment" "--inline-css" "--line-numbers"
 							 "--line-number-length" "3"

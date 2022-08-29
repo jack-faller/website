@@ -15,7 +15,6 @@
 (define (putfile file string) (call-with-output-file file (λ (port) (put-string port string))))
 
 (define *rules* (make-hash-table))
-(define *products* '())
 (define-record-type <rule>
   (make-rule visited? products dependencies build-function)
   rule?
@@ -23,33 +22,40 @@
   (products products set-products!)
   (dependencies dependencies set-dependencies!)
   (build-function build-function set-build-function!))
-(define (rule products depends-on build-function)
-  (for-each (λ (x) (if (hash-ref *rules* x)
-					   (error (string-append "duplicate rule for building " x))
-					   (hash-set! *rules* x (make-rule #f products depends-on build-function))))
-			products)
-  (set! *products* (append products *products*)))
+(define (rule product/s depends-on build-function)
+  (define products (if (pair? product/s) product/s (list product/s)))
+  (for-each (λ (x)
+			  (when (hash-ref *rules* x)
+				(error (string-append "duplicate rule for building " x)))
+			  (hash-set! *rules* x (make-rule #f products depends-on build-function)))
+			products))
 (define (make)
-  (define (process product)
-	(let ((rule (hash-ref *rules* product)))
-	  (cond
-	   ((eq? (visited? rule) 'visiting) (error (string-append "recursive dependency on: " product)))
-	   ((not (visited? rule))
-		(set-visited! rule 'visiting)
-		(for-each
-		 (λ (i) (when (hash-ref *rules* i) (process i)))
-		 (dependencies rule))
-		(let* ((mtimes (λ (files) (map (compose stat:mtime stat) files)))
-			   (newest-dependancy (apply max (mtimes (dependencies rule))))
-			   (existent-products (filter file-exists? (products rule)))
-			   (oldest-product (if (null? existent-products) 0 (apply min (mtimes existent-products)))))
-		  (when (or (not (current-filename))
-					(< oldest-product (max (stat:mtime (stat (current-filename))) newest-dependancy)))
-			(for-each display (list "building " (products rule) " from " (dependencies rule)))
-			(newline)
-			(apply (build-function rule) (append (products rule) (dependencies rule)))))
-		(set-visited! rule #t)))))
-  (for-each process *products*))
+  (define (process root rule)
+	(cond
+	 ((eq? (visited? rule) 'visiting)
+	  (error (string-append "recursive dependency for " root
+							" ending at " (products rule))))
+	 ((not (visited? rule))
+	  (set-visited! rule 'visiting)
+	  (for-each
+	   (λ (i) (let ((rule (hash-ref *rules* i))) (when rule (process root rule))))
+	   (dependencies rule))
+	  (let* ((mtimes (λ (files) (map (compose stat:mtime stat) files)))
+			 (deps (if (current-filename)
+					   (cons (current-filename) (dependencies rule))
+					   (dependencies rule)))
+			 (newest-dependancy (apply max (mtimes deps)))
+			 (existent-products (filter file-exists? (products rule)))
+			 (oldest-product (if (null? existent-products)
+								 0
+								 (apply min (mtimes existent-products)))))
+		(when (< oldest-product newest-dependancy)
+		  (for-each display (list "building " (products rule)
+								  " from " (dependencies rule)))
+		  (newline)
+		  (apply (build-function rule) (append (products rule) (dependencies rule)))))
+	  (set-visited! rule #t))))
+  (hash-for-each process *rules*))
 
 (define (filter-if-defs file defs)
   (let* ((defined '())
@@ -154,7 +160,7 @@
 								'pre read-code 'post)))
 			(putfile output-file it)))
 		(unless (file-exists? date-file) (putfile date-file "DRAFT"))
-		(rule (list out-file)
+		(rule out-file
 			  (cons* post-template (post-src file-name) date-file code-files)
 			  instance))))
   (for-each (λ (info)
@@ -167,7 +173,7 @@
 (define base-template "template.html")
 
 (define (page name dependencies fn)
-  (rule (list (page-out name)) (cons (page-src name) dependencies) fn))
+  (rule (page-out name) (cons (page-src name) dependencies) fn))
 
 (page "error404.html" (list page-template)
 	  (λ (out-file in-file template)
@@ -181,9 +187,8 @@
 		(define line "")
 		(define recent-posts
 		  (let loop ((output "") (times index-post-count))
-			(if (or (= times 0) (eof-object?
-								 (begin (set! line (read-line file))
-										line)))
+			(if (or (= times 0)
+					(begin (set! line (read-line file)) (eof-object? line)))
 				output
 				(loop (string-append output line) (- times 1)))))
 		(define content (handle-defs in-file `(("RECENT-POSTS" . ,recent-posts))))
@@ -194,15 +199,15 @@
 		(define content (handle-defs in-file `(("POSTS" . ,(getfile post-list)))))
 		(putfile out-file (handle-defs template `(("CONTENT" . ,content))))))
 
-(rule (list post-template) (list base-template)
+(rule post-template (list base-template)
 	  (λ (post template)
 		(putfile post (handle-defs template '("BACK-ARROW" "COMMENTS" "DATE")))))
 
-(rule (list page-template) (list base-template)
+(rule page-template (list base-template)
 	  (λ (page template)
 		(putfile page (handle-defs template '("BACK-ARROW")))))
 
-(rule (list post-list) (list post-infos-file)
+(rule post-list (list post-infos-file)
 	  (λ (out-file in-file)
 		(define lines
 		  (map (λ (info) (string-append

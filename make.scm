@@ -9,6 +9,7 @@
 			 (ice-9 ftw)
 			 (ice-9 regex)
 			 (ice-9 textual-ports))
+(define rx-global regexp-substitute/global)
 
 (define (getfile file) (call-with-input-file file get-string-all))
 (define (putfile file string) (call-with-output-file file (λ (port) (put-string port string))))
@@ -97,36 +98,42 @@
 	  (let ((ht (alist->hash-table defs))
 			;; | should return longest match
 			(regexp (string-join (map (compose regexp-quote car) defs) "|")))
-		(regexp-substitute/global #f regexp string
-								  'pre (λ (x) (hash-ref ht (match:substring x))) 'post))))
+		(rx-global #f regexp string
+				   'pre (λ (x) (hash-ref ht (match:substring x))) 'post))))
 
 (define (handle-defs file defs)
   (subst-defs (filter-if-defs file (map (λ (x) (if (pair? x) (car x) x)) defs))
 			  (filter pair? defs)))
 
 (define (dir-func dir) (lambda (name) (string-append dir name)))
-(define template (dir-func "templates/"))
 (define generated (dir-func "generated/"))
 (define page-src (dir-func "pages/"))
 (define post-src (dir-func "posts/"))
 (define page-out (dir-func "data/www/"))
 (define post-out (dir-func "data/www/post/"))
 
+(define post-infos-file "posts.txt")
+(define post-infos
+  (map (λ (line) (string-split line #\|))
+	   (filter (λ (line) (not (string= line "")))
+			   (string-split (getfile post-infos-file) #\Newline))))
+(define post-list (generated "post-list.html"))
 (define page-template (generated "page.html"))
 (define post-template (generated "post.html"))
 (begin
   (define code-file (generated "code-output.html"))
   (define out-dir "data/www/post/")
-  (define dates (make-hash-table))
   (define (not-dot file) (not (string-match "^\\.+$" file)))
+  (define date-file (dir-func (generated "dates/")))
   (define (add-file file-name)
 	(define match (string-match "(.*)\\.html$" file-name))
 	(when match
 	  (let* ((out-file (post-out file-name))
 			 (post-name (match:substring match 1))
+			 (date-file (date-file post-name))
 			 (code (λ (file) (string-append (post-src post-name) "/" file)))
-			 (code-files (map code (scandir (code "") not-dot))))
-		(define (instance output-file template-file input-file . code-files)
+			 (code-files (map code (or (scandir (code "") not-dot) '()))))
+		(define (instance output-file template-file input-file date-file . code-files)
 		  (define content (getfile input-file))
 		  (define (read-code match)
 			(string-append
@@ -141,34 +148,39 @@
 			 "</code></pre>"))
 		  (let* ((it (handle-defs template-file
 								  `(("POSTNAME" . ,post-name)
-									("CONTENT" . ,content))))
-				 (it (regexp-substitute/global #f "CODE-BLOCK[^\n]*\"([^\n]*)\"" it
-											   'pre read-code 'post)))
+									("CONTENT" . ,content)
+									("DATE" . ,(getfile date-file)))))
+				 (it (rx-global #f "CODE-BLOCK[^\n]*\"([^\n]*)\"" it
+								'pre read-code 'post)))
 			(putfile output-file it)))
-		(rule (list out-file) (cons* post-template (post-src file-name) code-files)
+		(unless (file-exists? date-file) (putfile date-file "DRAFT"))
+		(rule (list out-file)
+			  (cons* post-template (post-src file-name) date-file code-files)
 			  instance))))
-  (for-each
-   (λ (line)
-	 (define split (string-split line #\|))
-	 (when (not (string= line ""))
-	   (hash-set! dates (car split) (cadr split))))
-   (string-split (getfile "post-dates.txt") #\Newline))
+  (for-each (λ (info)
+			  (let ((date-file (date-file (car info))) (date (cadr info)))
+				(when (not (string= date (getfile date-file)))
+				  (putfile date-file date))))
+			post-infos)
   (for-each add-file (scandir (post-src "") not-dot)))
 
-(define base-template (template "template.html"))
+(define base-template "template.html")
 
-(rule (list (page-out "error404.html")) (list page-template (page-src "error404.html"))
-	  (λ (out-file template in-file)
+(define (page name dependencies fn)
+  (rule (list (page-out name)) (cons (page-src name) dependencies) fn))
+
+(page "error404.html" (list page-template)
+	  (λ (out-file in-file template)
 		(putfile out-file (handle-defs template `(("CONTENT" . ,(getfile in-file)))))))
 
-(define *index-post-count** 10)
+(define index-post-count 10)
 
-(rule (list (page-out "index.html")) (cons* base-template (map page-src '("index.html" "post-list.html")))
-	  (λ (out-file template in-file post-list)
+(page "index.html" (list base-template post-list)
+	  (λ (out-file in-file template post-list)
 		(define file (open-input-file post-list))
 		(define line "")
 		(define recent-posts
-		  (let loop ((output "") (times *index-post-count**))
+		  (let loop ((output "") (times index-post-count))
 			(if (or (= times 0) (eof-object?
 								 (begin (set! line (read-line file))
 										line)))
@@ -177,17 +189,26 @@
 		(define content (handle-defs in-file `(("RECENT-POSTS" . ,recent-posts))))
 		(putfile out-file (handle-defs template `(("CONTENT" . ,content))))))
 
-(rule (list (page-out "posts.html")) (cons* page-template (map page-src '("posts.html" "post-list.html")))
-	  (λ (out-file template in-file post-list)
+(page "posts.html" (list page-template post-list)
+	  (λ (out-file in-file template post-list)
 		(define content (handle-defs in-file `(("POSTS" . ,(getfile post-list)))))
 		(putfile out-file (handle-defs template `(("CONTENT" . ,content))))))
 
 (rule (list post-template) (list base-template)
 	  (λ (post template)
-		(putfile post (handle-defs template '("BACK-ARROW" "COMMENTS")))))
+		(putfile post (handle-defs template '("BACK-ARROW" "COMMENTS" "DATE")))))
 
 (rule (list page-template) (list base-template)
 	  (λ (page template)
 		(putfile page (handle-defs template '("BACK-ARROW")))))
 
+(rule (list post-list) (list post-infos-file)
+	  (λ (out-file in-file)
+		(define lines
+		  (map (λ (info) (string-append
+						  "<li><a href=\"/post/" (car info) "\">"
+						  (caddr info) " &ndash; " (cadr info)
+						  "</a></li>"))
+			   post-infos))
+		(putfile out-file (string-join lines "\n"))))
 (make)

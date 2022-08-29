@@ -104,50 +104,66 @@
   (subst-defs (filter-if-defs file (map (λ (x) (if (pair? x) (car x) x)) defs))
 			  (filter pair? defs)))
 
-(begin
-  (define template-file "templates/generated/post.html")
-  (define code-file "templates/generated/code-output.html")
-  (define in-dir "posts/")
-  (define code-dir "code/")
-  (define out-dir "data/www/post/")
-  (ftw in-dir
-	   (λ (in-file _ flag)
-		 (when (eq? flag 'regular)
-		   (let* ((file-name (substring in-file (string-length in-dir)))
-				  (out-file (string-append out-dir file-name))
-				  (post-name (match:substring (string-match "posts/(.*)\\.html$" in-file) 1))
-				  (code-dir (string-append code-dir post-name "/"))
-				  (code-files (map (λ (f) (string-append code-dir f))
-								   (scandir code-dir (λ (f) (not (string-match "^\\.+$" f)))))))
-			 (define (instance output-file template-file input-file . code-files)
-			   (define content (getfile input-file))
-			   (define (read-code match)
-				 (string-append
-				  "<pre><code class=\"block\">"
-				  (begin
-					(system* "highlight" "--fragment" "--inline-css" "--line-numbers"
-							 "--line-number-length" "3"
-							 (string-append code-dir (match:substring match 1))
-							 "-o" code-file "-O" "html")
-					(newline)
-					(getfile code-file))
-				  "</code></pre>"))
-			   (let* ((it (handle-defs template-file
-									   `(("POSTNAME" . ,post-name)
-										 ("CONTENT" . ,content))))
-					  (it (regexp-substitute/global #f "CODE-BLOCK[^\n]*\"([^\n]*)\"" it
-													'pre read-code 'post)))
-				 (putfile output-file it)))
-			 (rule (list out-file) (cons* template-file in-file code-files) instance)))
-		 #t)))
+(define (dir-func dir) (lambda (name) (string-append dir name)))
+(define template (dir-func "templates/"))
+(define generated (dir-func "generated/"))
+(define page-src (dir-func "pages/"))
+(define post-src (dir-func "posts/"))
+(define page-out (dir-func "data/www/"))
+(define post-out (dir-func "data/www/post/"))
 
-(rule '("data/www/error404.html") '("templates/template.html" "pages/error404.html")
+(define page-template (generated "page.html"))
+(define post-template (generated "post.html"))
+(begin
+  (define code-file (generated "code-output.html"))
+  (define out-dir "data/www/post/")
+  (define dates (make-hash-table))
+  (define (not-dot file) (not (string-match "^\\.+$" file)))
+  (define (add-file file-name)
+	(define match (string-match "(.*)\\.html$" file-name))
+	(when match
+	  (let* ((out-file (post-out file-name))
+			 (post-name (match:substring match 1))
+			 (code (λ (file) (string-append (post-src post-name) "/" file)))
+			 (code-files (map code (scandir (code "") not-dot))))
+		(define (instance output-file template-file input-file . code-files)
+		  (define content (getfile input-file))
+		  (define (read-code match)
+			(string-append
+			 "<pre><code class=\"block\">"
+			 (begin
+			   (system* "highlight" "--fragment" "--inline-css" "--line-numbers"
+						"--line-number-length" "3"
+						(code (match:substring match 1))
+						"-o" code-file "-O" "html")
+			   (newline)
+			   (getfile code-file))
+			 "</code></pre>"))
+		  (let* ((it (handle-defs template-file
+								  `(("POSTNAME" . ,post-name)
+									("CONTENT" . ,content))))
+				 (it (regexp-substitute/global #f "CODE-BLOCK[^\n]*\"([^\n]*)\"" it
+											   'pre read-code 'post)))
+			(putfile output-file it)))
+		(rule (list out-file) (cons* post-template (post-src file-name) code-files)
+			  instance))))
+  (for-each
+   (λ (line)
+	 (define split (string-split line #\|))
+	 (when (not (string= line ""))
+	   (hash-set! dates (car split) (cadr split))))
+   (string-split (getfile "post-dates.txt") #\Newline))
+  (for-each add-file (scandir (post-src "") not-dot)))
+
+(define base-template (template "template.html"))
+
+(rule (list (page-out "error404.html")) (list page-template (page-src "error404.html"))
 	  (λ (out-file template in-file)
 		(putfile out-file (handle-defs template `(("CONTENT" . ,(getfile in-file)))))))
 
 (define *index-post-count** 10)
 
-(rule '("data/www/index.html") '("templates/template.html" "pages/index.html" "pages/post-list.html")
+(rule (list (page-out "index.html")) (cons* base-template (map page-src '("index.html" "post-list.html")))
 	  (λ (out-file template in-file post-list)
 		(define file (open-input-file post-list))
 		(define line "")
@@ -161,18 +177,16 @@
 		(define content (handle-defs in-file `(("RECENT-POSTS" . ,recent-posts))))
 		(putfile out-file (handle-defs template `(("CONTENT" . ,content))))))
 
-(rule '("data/www/posts.html") '("templates/template.html" "pages/posts.html" "pages/post-list.html")
+(rule (list (page-out "posts.html")) (cons* page-template (map page-src '("posts.html" "post-list.html")))
 	  (λ (out-file template in-file post-list)
 		(define content (handle-defs in-file `(("POSTS" . ,(getfile post-list)))))
-		(putfile out-file (handle-defs template `("BACK-ARROW" ("CONTENT" . ,content))))))
+		(putfile out-file (handle-defs template `(("CONTENT" . ,content))))))
 
-(rule '("templates/generated/post.html") '("templates/template.html")
+(rule (list post-template) (list base-template)
 	  (λ (post template)
 		(putfile post (handle-defs template '("BACK-ARROW" "COMMENTS")))))
 
-(filter-if-defs "templates/template.html" '("BACK-ARROW" "COMMENTS"))
-
-(rule '("templates/generated/page.html") '("templates/template.html")
+(rule (list page-template) (list base-template)
 	  (λ (page template)
 		(putfile page (handle-defs template '("BACK-ARROW")))))
 

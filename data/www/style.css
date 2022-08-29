@@ -36,14 +36,16 @@ h1 {
 .backarrow {
 	float: right;
 	text-decoration: none;
-	color: inherit;
 	position: absolute;
+	color: inherit;
+}
+.backarrow:visited {
+	color: inherit;
 }
 
 a {
 	color: #000050;
 }
-
 a:visited {
 	color: #480048;
 }

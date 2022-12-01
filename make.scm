@@ -120,9 +120,10 @@
 
 (define post-infos-file "posts.txt")
 (define post-infos
-  (map (λ (line) (string-split line #\|))
-	   (filter (λ (line) (not (string= line "")))
-			   (string-split (getfile post-infos-file) #\Newline))))
+  (let* ((lines (string-split (getfile post-infos-file) #\Newline))
+		 (lines (filter (λ (line) (not (string= line ""))) lines))
+		 (lines (reverse lines)))
+	(map (λ (line) (string-split line #\|)) lines)))
 (define post-list (generated "post-list.html"))
 (define page-template (generated "page.html"))
 (define post-template (generated "post.html"))
@@ -165,7 +166,8 @@
 			  instance))))
   (for-each (λ (info)
 			  (let ((date-file (date-file (car info))) (date (cadr info)))
-				(when (not (string= date (getfile date-file)))
+				(when (not (and (file-exists? date-file)
+								(string= date (getfile date-file))))
 				  (putfile date-file date))))
 			post-infos)
   (for-each add-file (scandir (post-src "") not-dot)))

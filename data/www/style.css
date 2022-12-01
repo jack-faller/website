@@ -16,6 +16,8 @@ body {
 	margin: 0px;
 	background-image: url('images/tiling_patern.jpg');
 
+	quotes: "\201C" "\201D";
+
 	display: flex;
 	justify-content: center;
 	padding-top: min(8vw, 50px);

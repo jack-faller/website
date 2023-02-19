@@ -64,7 +64,9 @@
 								 (hashq-ref table char)))
 			  port))
 (define comment-reader-pair
-  (cons #\; (lambda (port table) (read-line port))))
+  (cons #\; (lambda (port table)
+			  (read-line port)
+			  (table-read port table))))
 
 (define curly-read-table
   (alist->hashq-table

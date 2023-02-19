@@ -75,9 +75,9 @@
   (filter-map
    (scheme-file-functor
 	(lambda (name file)
-	  (let ((post (dl-load file)))
-		(post-set-name! post name)
-		post)))
+	  (let ((p (dl-load file)))
+		(post-set-name! p name)
+		p)))
    (dirfiles "posts")))
 
 (for-each

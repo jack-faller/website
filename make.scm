@@ -8,9 +8,9 @@
    {head {title Jack Faller}
 		 {{link {href /style.css} {rel stylesheet} {type text/css}}}
 		 #@(if blogname
-			   (list {script const blogname =
-							 #(string-append "\"" blogname "\"")}
-					 {{script {src comment-script.js} defer}})
+			   {{script const blogname =
+						#(string-append "\"" blogname "\"")}
+				{{script {src comment-script.js} defer}}}
 			   '())}
    {body
 	{main

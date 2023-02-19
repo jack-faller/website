@@ -56,7 +56,7 @@
 
 (define (output-file name)
   (open-file (thisdir (string-append "data/www/" name)) "w"))
-(define (write-sexp-to-html-file sexp name)
+(define (write-sexp-to-html-file name sexp)
   (let ((out (output-file (string-append name ".html"))))
 	(display (sexp->html sexp) out)
 	(close-port out)))
@@ -83,9 +83,9 @@
 (for-each
  (lambda (post)
    (write-sexp-to-html-file
+	(string-append "post/" (post-name post))
 	(apply template (post-name post) #t (post-written-date post)
-		   (post-body post))
-	(string-append "post/" (post-name post))))
+		   (post-body post))))
  posts)
 
 (define post-list
@@ -96,15 +96,12 @@
    (sort
 	(filter post-time posts)
 	(lambda (a b) (time>? (post-time a) (post-time b))))))
-(define post-page
-  (page
-   {h1 All Posts}
-   {ul
-	#@post-list}))
-(define recent-posts {ul #@(list-head post-list (min 10 (length post-list)))})
+(define recent-posts
+  {ul #@(list-head post-list (min 10 (length post-list)))})
 
+(write-sexp-to-html-file "posts" (page {h1 All Posts} {ul #@post-list}))
 (for-each
  (scheme-file-functor
   (lambda (name file)
-	(write-sexp-to-html-file (dl-load file) name)))
+	(write-sexp-to-html-file name (dl-load file))))
  (dirfiles "pages"))

@@ -1,5 +1,5 @@
 (post
- "Test post"
+ "Test Post"
  (calendar-date 2023 2 18)
  {p Testing, testing, 123.}
  {p this is a {keyword}}

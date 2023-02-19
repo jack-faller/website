@@ -57,7 +57,7 @@
 (define (output-file name)
   (open-file (thisdir (string-append "data/www/" name)) "w"))
 (define (write-sexp-to-html-file sexp name)
-  (let ((out (output-file name)))
+  (let ((out (output-file (string-append name ".html"))))
 	(display (sexp->html sexp) out)
 	(close-port out)))
 

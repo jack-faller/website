@@ -7,7 +7,7 @@
   I've decided to upload some of those things to the internet, and a major
   location for that is this site. I have too many ideas to keep them all to
   myself, so I hope you can get something from the ones I put here.}
- {h2 Recent Blog Posts ({{a {href /posts.html}} see all})}
+ {h2 Recent Blog Posts {join ( {{a {href /posts.html}} see all} )}}
  recent-posts
  {h2 Other Places}
  {ul

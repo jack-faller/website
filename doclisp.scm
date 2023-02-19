@@ -112,12 +112,13 @@
 			(car first)))))
   (if (string? sexp)
 	  sexp
-	  (let ((head (if (equal? (car sexp) "just")
+	  (let ((head (if (or (equal? (car sexp) "just") (equal? (car sexp) "join"))
 					  #f
 					  (tag (car sexp))))
 			(body (string-join
 				   (filter-map (lambda (e) (if e (sexp->html e) e))
-							   (cdr sexp)))))
+							   (cdr sexp))
+				   (if (equal? (car sexp) "join") "" " "))))
 		(if head
 			(string-append "<" (car head) ">" body "</" (cdr head) ">")
 			body))))

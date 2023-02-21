@@ -11,15 +11,15 @@ The doclisp file defines a special syntax for reading scheme code and a function
 ** Usage
 At present =doclisp.scm= will automatically load the file =make.scm= with the correct reader as this is the easiest way to set the reader in a file.
 ** Reader
-The function =dl-load= will load a file using =doclisp-reader=, which is a function similar to the built in =read= but has additional syntax for writing text using curly brackets. Below is a demonstration of this syntax and what it maps to in normal scheme.
+The function ~dl-load~ will load a file using ~doclisp-reader~, which is a function similar to the built in ~read~ but has additional syntax for writing text using curly brackets. Below is a demonstration of this syntax and what it maps to in normal scheme.
 #+begin_src scheme
   {a {b} ('`,c. ) #d #@e}
   ;; is the same as
   `("a" ("b") "('`,c." ")" ,d ,@e)
 #+end_src
-Within curly braces, all ordinary syntax is disabled and text is split by spaces then converted to strings. (As a result of this, white-space is not significant.) Curly braces can be nested without causing issues with quoting. Finally =#= and =#@= are the equivalent of =,= and =,@= in quasi-quoting, they will read an ordinary scheme form and insert it into the list. Comments will still work within the curly braces. The unquoting =#= can also be used to escape these characters unquoting a string literal: =#"#;"=.
+Within curly braces, all ordinary syntax is disabled and text is split by spaces then converted to strings. (As a result of this, white-space is not significant.) Curly braces can be nested without causing issues with quoting. Finally ~#~ and ~#@~ are the equivalent of ~ , ~ and ~,@~ in quasi-quoting, they will read an ordinary scheme form and insert it into the list. Comments will still work within the curly braces. The unquoting ~#~ can also be used to escape these characters unquoting a string literal: ~#"#;"~.
 ** Converting to HTML
-The function =sexp->html= converts a tree of strings to a string of HTML. The basic syntax used is to take the head of the list and use that as an HTML tag, then join the rest of the list with spaces and put those in the body of the tag.
+The function ~sexp->html~ converts a tree of strings to a string of HTML. The basic syntax used is to take the head of the list and use that as an HTML tag, then join the rest of the list with spaces and put those in the body of the tag.
 #+begin_src scheme
   (sexp->html {p Paragraph with {b bold text} .})
   ; =>
@@ -31,10 +31,10 @@ If the head of a list is itself a list, then its first element is the tag name a
   ; =>
   "<script src=\"/path/to/script name\" defer></script>"
 #+end_src
-The value of a pair will first be processed by =(sexp->html (cons "just" (cdr pair)))=, so the list will be joined using spaces between each string if more than one item is given.
-The result of this conversion is inserted directly into the attribute, so any quotes in it will need to be double escaped \ndash =" \\\" sub-quote \\\" "=.
+The value of a pair will first be processed by ~(sexp->html (cons "just" (cdr pair)))~, so the list will be joined using spaces between each string if more than one item is given.
+The result of this conversion is inserted directly into the attribute, so any quotes in it will need to be double escaped \ndash ~" \\\" sub-quote \\\" "~.
 *** Special Tags
-If the tag is =just=, then the body will not be surrounded by a tag. =join= is similar, but the body will not have spaces added between its elements (this is useful to resolve an issue in the first example where we would like the bold tag not to be followed by a space).
+If the tag is ~just~, then the body will not be surrounded by a tag. ~join~ is similar, but the body will not have spaces added between its elements (this is useful to resolve an issue in the first example where we would like the bold tag not to be followed by a space).
 #+begin_src scheme
   (sexp->html {just Paragraph with {join {b bold text} .}})
   ; =>

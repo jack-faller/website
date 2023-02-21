@@ -3,7 +3,8 @@
 			 (srfi srfi-13)
 			 (ice-9 popen)
 			 (ice-9 rdelim)
-			 (ice-9 hash-table))
+			 (ice-9 hash-table)
+			 (ice-9 textual-ports))
 
 (define (drop-space port)
   (while (let ((c (peek-char port)))
@@ -67,6 +68,20 @@
   (cons #\; (lambda (port table)
 			  (read-line port)
 			  (table-read port table))))
+(define (drop-block-comment port)
+  (let ((got (cdr (read-delimited "|#" port 'split))))
+	(cond
+	 ((eof-object? got)
+	  (error "Unterminated comment."))
+	 ((and (eq? got #\|) (eq? (peek-char port) #\#))
+	  (read-char port))
+	 ((and (eq? got #\#) (eq? (peek-char port) #\|))
+	  (read-char port)
+	  (drop-block-comment port)
+	  (drop-block-comment port))
+	 (else
+	  ;; (drop-block-comment port)
+	  (read-line port)))))
 
 (define curly-read-table
   (alist->hashq-table
@@ -74,7 +89,12 @@
 			   (delimited-read #\} port curly-read-table)))
 	 ,comment-reader-pair
 	 (#\} . ,(lambda _ (error "Unexpected closing delimiter" #\})))
-	 (#\# . ,(lambda (port table) (unquote-reader port default-read-table)))
+	 (#\# . ,(lambda (port table)
+			   (if (eq? (peek-char port) #\|)
+				   (begin (read-char port)
+						  (drop-block-comment port)
+						  (table-read port table))
+				   (unquote-reader port default-read-table))))
 	 (atom . ,read-atom))))
 (define default-read-table
   (alist->hashq-table
@@ -91,9 +111,20 @@
 			   (cons 'quasiquote
 					 (list (delimited-read #\} port curly-read-table)))))
 	 ,comment-reader-pair
+	 (#\# . ,(lambda (port table)
+			   (case (peek-char port)
+				 ((#\|)
+				  (read-char port)
+				  (drop-block-comment port)
+				  (table-read port table))
+				 ((#\()
+				  (apply vector (table-read port)))
+				 (else
+				  (unget-char port #\#)
+				  (read port)))))
 	 ,@(map (lambda (a)
 			  (cons a (lambda _ (error "Unexpected closing delimiter" a))))
-			'(#\) #\) #\})))))
+			'(#\) #\] #\})))))
 
 (define (doclisp-reader port)
   (table-read port default-read-table))

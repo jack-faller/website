@@ -1,5 +1,5 @@
 #+title: Static Site Generator
-=​,​=
+
 I have written a custom static site generator using Guile Scheme to process my personal website.
 To build this repository, run:
 #+begin_src shell

@@ -107,8 +107,9 @@
 			 (cons
 			  (car first)
 			  (map (lambda (x)
-					 (if (list? x)
-						 (string-append (car x) "=\"" (cadr x) "\"")
+					 (if (pair? x)
+						 (string-append
+						  (car x) "=\"" (sexp->html (cons "just" (cdr x))) "\"")
 						 x))
 				   (cdr first))))
 			(car first)))))

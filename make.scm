@@ -2,6 +2,16 @@
 			 (ice-9 regex)
 			 (srfi srfi-19))
 
+(define (link-heading depth id text)
+  (define (link body)
+	{{a {class linkheading} {href #(string-append "#" id)}}
+	 #body})
+  {{div {id #id}}
+   {#(string-append "h" (number->string depth))
+	#(if (procedure? text)
+		 (text link)
+		 (link text))}})
+
 (define (template blogname wants-back-arrow? date . body)
   {just
    <!DOCTYPE html>

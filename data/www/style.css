@@ -35,6 +35,14 @@ h1 {
 	text-align: center;
 }
 
+.linkheading {
+	color: black;
+	text-decoration: none;
+}
+.linkheading:visited {
+	color: black;
+}
+
 .backarrow {
 	text-decoration: none;
 	position: absolute;

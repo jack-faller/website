@@ -7,17 +7,16 @@
 	 {link https://jackfaller.xyz/}
 	 {description Recent blog posts on jackfaller.xyz, my general musings on life.}
 	 {lastBuildDate #(rfc-822 (current-date))}
-	 {just
-	  #@(map
-		 (lambda (post)
-		   {item
-			{title #(post-title post)}
-			{link {join https://jackfaller.xyz/post/ #(post-name post) .html}}
-			{pubDate #(rfc-822 (post-date post))}
-			{description
-			 #(let ((CD-begin "<![CDATA[") (CD-end "]]>")
-					(desc (sexp->html (post-description post))))
-				(if (string-contains desc CD-end)
-					(error "Post description contains CDATA end string:" CD-end)
-					(string-append CD-begin desc CD-end)))}})
-		 (at-most 30 public-posts))}}}})
+	 #@(map
+		(lambda (post)
+		  {item
+		   {title #(post-title post)}
+		   {link {join https://jackfaller.xyz/post/ #(post-name post) .html}}
+		   {pubDate #(rfc-822 (post-date post))}
+		   {description
+			#(let ((CD-begin "<![CDATA[") (CD-end "]]>")
+				   (desc (sexp->html (post-description post))))
+			   (if (string-contains desc CD-end)
+				   (error "Post description contains CDATA end string:" CD-end)
+				   (string-append CD-begin desc CD-end)))}})
+		(at-most 30 public-posts))}}})

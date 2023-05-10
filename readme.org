@@ -3,8 +3,12 @@
 I have written a custom static site generator using Guile Scheme to process my personal website.
 To build this repository, run:
 #+begin_src shell
-  $ guile doclisp.scm
+  $ guile doclisp.scm && ./sync.sh user@server_address
 #+end_src
+=doclisp.scm= will make the website by running =make.scm= with the Doclisp syntax enabled.
+=sync.sh= will send the files to the server removing any old files and reloading the Nginx instance tuning there.
+
+*WARNING*: =sync.sh= will overwrite anything in the =/data= directory of the server as well as =/etc/nginx/nginx.conf=.
 
 * Doclisp
 The doclisp file defines a special syntax for reading scheme code and a function for converting S-expressions to HTML.

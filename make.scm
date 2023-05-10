@@ -65,8 +65,11 @@
 (define (page . body) (apply template #f #t #f body))
 (define (home-page . body) (apply template #f #f #f body))
 
+(system* "rm" "-rf" (thisdir "generated"))
 (define (output-file name)
-  (open-file (thisdir (string-append "data/www/" name)) "w"))
+  (let ((fname (thisdir (string-append "generated/www/" name))))
+	(system* "mkdir" "-p" (dirname fname))
+	(open-file fname "w")))
 (define (write-sexp-to-html-file name sexp)
   (let ((out (output-file name)))
 	(display (sexp->html sexp) out)

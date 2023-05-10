@@ -83,7 +83,8 @@
 (define (dirfiles dir)
   (map
    (lambda (x) (string-append (thisdir dir) "/" x))
-   (scandir (thisdir dir))))
+   (scandir (thisdir dir)
+			(lambda (file) (not (or (string= file ".") (string= file "..")))))))
 
 (define posts
   (filter-map
@@ -119,7 +120,11 @@
 
 (write-sexp-to-html-file "posts.html" (page {h1 All Posts} {ul #@post-list}))
 (for-each
- (scheme-file-functor
-  (lambda (name file)
-	(write-sexp-to-html-file name (dl-load file))))
+ (lambda (dir)
+   (define ext (basename dir))
+   (for-each
+	(scheme-file-functor
+	 (lambda (name file)
+	   (write-sexp-to-html-file (string-append name "." ext) (dl-load file))))
+	(dirfiles (string-append "pages/" ext))))
  (dirfiles "pages"))

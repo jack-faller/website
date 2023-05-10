@@ -8,8 +8,11 @@
   location for that is this site. I have too many ideas to keep them all to
   myself, so I hope you can get something from the ones I put here.}
  (link-heading 2 "recent-posts"
-			   (λ (link) {join #(link "Recent Blog Posts")
-							   #" (" {{a {href /posts.html}} see all} #")"}))
+			   (λ (link)
+				 {join #(link "Recent Blog Posts")
+					   #" (" {{a {href /posts.html}} see all}
+					   #", " {{a {href /feed.xml}} RSS}
+					   #")"}))
  recent-posts
  (link-heading 2 "other-places" "Other Places")
  {ul

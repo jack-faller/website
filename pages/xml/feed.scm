@@ -18,6 +18,6 @@
 			 #(let ((CD-begin "<![CDATA[") (CD-end "]]>")
 					(desc (sexp->html (post-description post))))
 				(if (string-contains desc CD-end)
-					(error "Post description contains CDATA end string: \"]]>\"")
+					(error "Post description contains CDATA end string:" CD-end)
 					(string-append CD-begin desc CD-end)))}})
 		 (at-most 30 public-posts))}}}})

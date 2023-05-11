@@ -33,7 +33,9 @@
 		#(cmd "highlight" (thisdir (string-append "posts/" file-name))
 			  "-O" "html" "--inline-css" "--fragment"
 			  "--line-numbers" "--line-number-length" "3")}})
-(define (calendar-date y m d) (make-date 0 0 0 0 d m y 0))
+(define date-string-format "~Y/~m/~d ~H:~M ~z")
+(define (current-date-string) (date->string (current-date) date-string-format))
+(define (read-date-string date) (string->date date date-string-format))
 (define (date-format date)
   (string-append
    (let ((day (date-day date)))
@@ -57,7 +59,8 @@
   (body         post-body         post-set-body!))
 
 (define (post title date description . body)
-  (let* ((sort (and date (date->time-tai date)))
+  (let* ((date (and date (read-date-string date)))
+		 (sort (and date (date->time-tai date)))
 		 (written-date (if date (date-format date) "DRAFT")))
 	(make-post #f title sort (or date 'draft) written-date description
 			   (cons {h1 #title} body))))

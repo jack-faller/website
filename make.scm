@@ -62,8 +62,7 @@
   (let* ((date (and date (read-date-string date)))
 		 (sort (and date (date->time-tai date)))
 		 (written-date (if date (date-format date) "DRAFT")))
-	(make-post #f title sort (or date 'draft) written-date description
-			   (cons {h1 #title} body))))
+	(make-post #f title sort (or date 'draft) written-date description body)))
 
 (define (page . body) (apply template #f #t #f body))
 (define (home-page . body) (apply template #f #f #f body))
@@ -106,7 +105,10 @@
    (write-sexp-to-html-file
 	(string-append "post/" (post-name post) ".html")
 	(apply template (post-name post) #t (post-written-date post)
-		   (post-body post))))
+		   (cons*
+			{h1 #(post-title post)}
+			{p #(post-description post)}
+			(post-body post)))))
  posts)
 
 (define post-list

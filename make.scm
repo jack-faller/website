@@ -1,5 +1,6 @@
 (use-modules (ice-9 ftw)
 			 (ice-9 regex)
+			 (ice-9 receive)
 			 (srfi srfi-19))
 
 (define (link-href prefix id)
@@ -15,6 +16,33 @@
 	  (lambda (i) (if (procedure? i) (i link) (link i)))
 	  text)
 	{{span {class sectionmark}} #(link "&sect;")}}})
+
+(define (footnotes)
+  (define count 0)
+  (define notes '())
+  (define (format-notes)
+	{just
+	 {hr}
+	 #@(map
+		(lambda (vals)
+		  (let ((id (car vals)) (count (cadr vals)) (text (cddr vals)))
+			{{div {id {join footnote- #id}}}
+			 {{a #(link-href "footnote" id)}
+			  {join [ #(number->string count) ]}}
+			 #@text
+			 #"<br>"}))
+		(reverse notes))})
+  (define (note-ref id)
+	(let ((count (cadr (assoc id notes))))
+	  {sup {{a #(link-href "footnote" id)} #(number->string count)}}))
+  (define (note id . text)
+	(set! count (+ count 1))
+	(set! notes (cons (cons* id count text) notes))
+	(note-ref id))
+  (values
+   note
+   note-ref
+   format-notes))
 
 (define (template blogname wants-back-arrow? date . body)
   {just

@@ -11,10 +11,14 @@
 	{{a {class headinglink} #(link-href "heading" id)}
 	 #@body})
   {{div {id #id} }
-   {{#(string-append "h" (number->string depth)) {class heading}}
-	#@(map
-	  (lambda (i) (if (procedure? i) (i link) (link i)))
-	  text)
+   {#(string-append "h" (number->string depth))
+	#@(let loop ((result '()) (list text) (link? #t))
+		(if (null? list)
+			(reverse result)
+			(loop (cons ((if link? link identity) (car list))
+						result)
+				  (cdr list)
+				  (not link?))))
 	{{span {class sectionmark}} #(link "&sect;")}}})
 
 (define (footnotes)

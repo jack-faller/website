@@ -45,7 +45,7 @@ h1 {
 .sectionmark {
 	display: none;
 }
-.heading:hover > .sectionmark {
+.headinglink:hover ~ .sectionmark {
 	display: inline;
 }
 

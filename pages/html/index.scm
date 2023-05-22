@@ -9,9 +9,9 @@
   myself, so I hope you can get something from the ones I put here.}
  (link-heading 2 "recent-posts"
 			   "Recent Blog Posts"
-			   (λ _ {join #" (" {{a {href /posts.html}} see all}
-						  #", " {{a {href /feed.xml}} RSS}
-						  #")"}))
+			   {join #" (" {{a {href /posts.html}} see all}
+					 #", " {{a {href /feed.xml}} RSS}
+					 #")"})
  recent-posts
  (link-heading 2 "other-places" "Other Places")
  {ul

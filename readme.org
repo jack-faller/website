@@ -21,7 +21,7 @@ The function ~dl-load~ will load a file using ~doclisp-reader~, which is a funct
   ;; is the same as
   `("a" ("b") "('`,c." ")" ,d "#;," ,@e)
 #+end_src
-Within curly braces, all ordinary syntax is disabled and text is split by spaces then converted to strings. (As a result of this, white-space is not significant.) Curly braces can be nested without causing issues with quoting. The macros ~#~ and ~#@~ are the equivalent of ~​,​~ and ~​,@​~ from ~quasiquote~, they will read an ordinary scheme form put the result of evaluating it into the list . Comments will still work within the curly braces. The unquoting ~#~ can also be used to escape these characters unquoting a string literal.
+Within curly braces, all ordinary syntax is disabled and text is split by spaces then converted to strings. (As a result of this, white-space is not significant.) Curly braces can be nested without causing issues with quoting. The macros ~#~ and ~#@~ are the equivalent of ~​,​~ and ~​,@​~ from ~quasiquote~, they will read an ordinary scheme form put the result of evaluating it into the list. Comments will still work within the curly braces. The unquoting ~#~ can also be used to escape these characters unquoting a string literal.
 ** Converting to HTML
 The function ~sexp->html~ converts a tree of strings to a string of HTML. The basic syntax used is to take the head of the list and use that as an HTML tag, then join the rest of the list with spaces and put those in the body of the tag.
 Escape characters are not yet dealt with, so they will need to be replaced with the corresponding entity when they appear.

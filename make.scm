@@ -2,15 +2,19 @@
 			 (ice-9 regex)
 			 (srfi srfi-19))
 
-(define (link-heading depth id text)
-  (define (link body)
-	{{a {class linkheading} {href #(string-append "#" id)}}
-	 #body})
-  {{div {id #id}}
-   {#(string-append "h" (number->string depth))
-	#(if (procedure? text)
-		 (text link)
-		 (link text))}})
+(define (link-href prefix id)
+  {href #(string-append "#" prefix "-" id)})
+
+(define (link-heading depth id . text)
+  (define (link . body)
+	{{a {class headinglink} #(link-href "heading" id)}
+	 #@body})
+  {{div {id #id} }
+   {{#(string-append "h" (number->string depth)) {class heading}}
+	#@(map
+	  (lambda (i) (if (procedure? i) (i link) (link i)))
+	  text)
+	{{span {class sectionmark}} #(link "&sect;")}}})
 
 (define (template blogname wants-back-arrow? date . body)
   {just

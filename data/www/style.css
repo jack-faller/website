@@ -62,6 +62,10 @@ h1 {
 	position: absolute;
 }
 
+.codequote {
+	word-wrap: break-word;
+}
+
 a {
 	color: #000050;
 }

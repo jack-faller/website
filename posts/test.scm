@@ -6,7 +6,7 @@
    {p {join Testing, #(note "test-1" "Test note 1")}
 	  {join testing, #(note "test-2" "Test note 2.")}
 	  {join 123 #(note-ref "test-1")}}
-   {p this is a {keyword}}
+   {p this is a keyword}
    (code-block "test/test.py")
    (code-block "test/test.lsp")
    (format-notes)))

@@ -10,7 +10,7 @@
  (link-heading 2 "recent-posts"
 			   "Recent Blog Posts"
 			   {join #" (" {{a {href /posts.html}} see all}
-					 #", " {{a {href /feed.xml}} RSS}
+					 #", " {{a {href /blog.rss}} RSS}
 					 #")"})
  recent-posts
  (link-heading 2 "other-places" "Other Places")

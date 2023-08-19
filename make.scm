@@ -27,15 +27,16 @@
   (define (format-notes)
 	{just
 	 {hr}
-	 #@(map
-		(lambda (vals)
-		  (let ((id (car vals)) (count (cadr vals)) (text (cddr vals)))
-			{{div {id {join footnote- #id}}}
-			 {{a #(link-href "footnote" id)}
-			  {join [ #(number->string count) ]}}
-			 #@text
-			 #"<br>"}))
-		(reverse notes))})
+	 {footer
+	  #@(map
+		 (lambda (vals)
+		   (let ((id (car vals)) (count (cadr vals)) (text (cddr vals)))
+			 {{div {id {join footnote- #id}}}
+			  {{a #(link-href "footnote" id)}
+			   {join [ #(number->string count) ]}}
+			  #@text
+			  #"<br>"}))
+		 (reverse notes))}})
   (define (note-ref id)
 	(let ((count (cadr (assoc id notes))))
 	  {sup {{a #(link-href "footnote" id)} #(number->string count)}}))
@@ -60,10 +61,12 @@
 			   '())}
    {body
 	{main
-	 #(and wants-back-arrow?
-		   {{a {href /} {title home} {class backarrow}} #"&larr;"})
-	 #(and date {{div {class date}} #date})
+	 {header
+	  #(and wants-back-arrow?
+			{{a {href /} {title home} {class backarrow}} #"&larr;"})
+	  #(and date {{div {class date}} #date})}
 	 #@body}}})
+;; Remember to put .codequote on inline code blocks to avoid word breaking.
 (define (code-block file-name)
   {pre {{code {class block}}
 		#(cmd "highlight" (thisdir (string-append "posts/" file-name))

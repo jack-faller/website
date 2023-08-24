@@ -108,7 +108,7 @@
 
 (system* "rm" "-rf" (thisdir "generated"))
 (define (output-file name)
-  (let ((fname (thisdir (string-append "generated/www/" name))))
+  (let ((fname (thisdir (string-append "generated/" name))))
 	(system* "mkdir" "-p" (dirname fname))
 	(open-file fname "w")))
 (define (write-sexp-to-html-file name sexp)
@@ -153,7 +153,7 @@
 (define post-list
   (map
    (lambda (post)
-	 {li {{a {href #(string-append "/post/" (post-name post))}}
+	 {li {{a {href #(string-append "/post/" (post-name post) ".html")}}
 		  #(post-title post) #"&ndash;" #(post-written-date post)}})
    public-posts))
 (define (at-most n list)

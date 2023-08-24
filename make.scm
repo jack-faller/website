@@ -25,18 +25,20 @@
   (define count 0)
   (define notes '())
   (define (format-notes)
-	{just
-	 {hr}
-	 {footer
-	  #@(map
-		 (lambda (vals)
-		   (let ((id (car vals)) (count (cadr vals)) (text (cddr vals)))
-			 {{div {id {join footnote- #id}}}
-			  {{a #(link-href "footnote" id)}
-			   {join [ #(number->string count) ]}}
-			  #@text
-			  #"<br>"}))
-		 (reverse notes))}})
+	(if (= count 0)
+		{just}
+		{just
+		 {hr}
+		 {footer
+		  #@(map
+			 (lambda (vals)
+			   (let ((id (car vals)) (count (cadr vals)) (text (cddr vals)))
+				 {{div {id {join footnote- #id}}}
+				  {{a #(link-href "footnote" id)}
+				   {join [ #(number->string count) ]}}
+				  #@text
+				  #"<br>"}))
+			 (reverse notes))}}))
   (define (note-ref id)
 	(let ((count (cadr (assoc id notes))))
 	  {sup {{a #(link-href "footnote" id)} #(number->string count)}}))
@@ -89,13 +91,13 @@
 (define-record-type <post>
   (make-post name title time date written-date description body)
   post?
-  (name         post-name         post-set-name!)
-  (time         post-time         post-set-time!)
-  (title        post-title        post-set-title!)
-  (date         post-date         post-set-date!)
-  (written-date post-written-date post-set-written-date!)
-  (description  post-description  post-set-description!)
-  (body         post-body         post-set-body!))
+  (name         post-name         post-name!)
+  (time         post-time         post-time!)
+  (title        post-title        post-title!)
+  (date         post-date         post-date!)
+  (written-date post-written-date post-written-date!)
+  (description  post-description  post-description!)
+  (body         post-body         post-body!))
 
 (define (post title date description . body)
   (let* ((date (and date (read-date-string date)))
@@ -127,13 +129,21 @@
    (scandir (thisdir dir)
 			(lambda (file) (not (or (string= file ".") (string= file "..")))))))
 
+(define note #f)
+(define note-ref #f)
 (define posts
   (filter-map
    (scheme-file-functor
 	(lambda (name file)
-	  (let ((p (dl-load file)))
-		(post-set-name! p name)
-		p)))
+	  (receive (n nr format-notes) (footnotes)
+		(set! note n)
+		(set! note-ref nr)
+		(let ((p (dl-load file)))
+		  (post-name! p name)
+		  (post-body! p `(,@(post-body p) ,(format-notes)))
+		  (set! note #f)
+		  (set! note-ref #f)
+		  p))))
    (dirfiles "posts")))
 (define public-posts
   (sort (filter post-time posts)

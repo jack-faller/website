@@ -7,10 +7,13 @@
 			 (ice-9 textual-ports))
 
 (define (drop-space port)
-  (while (let ((c (peek-char port)))
-		   (and (not (eof-object? c))
-				(char-whitespace? c)))
-	(read-char port)))
+  (let ((found-space #f))
+	(while (let ((c (peek-char port)))
+			 (and (not (eof-object? c))
+				  (char-whitespace? c)))
+	  (set! found-space #t)
+	  (read-char port))
+	found-space))
 
 (define (read-until f port)
   (string-unfold
@@ -23,15 +26,21 @@
 (define (unfold-until f)
   (unfold (lambda (c) (eq? c stop-unfolding)) identity (lambda (_) (f)) (f)))
 
-(define (delimited-read end port table)
-  (unfold-until
+(define (delimited-read end port table join?)
+  (let ((dropped-space? #t))
+   (unfold-until
    (lambda ()
-	 (drop-space port)
+	 (set! dropped-space? (or (drop-space port) dropped-space?))
 	 (let ((peeked (peek-char port)))
 	   (cond
 		((eof-object? peeked) (error "Missing closing delimiter."))
 		((eq? peeked end) (read-char port) stop-unfolding)
-		(else (table-read port table)))))))
+		((or dropped-space? (not join?))
+		 (set! dropped-space? #f)
+		 (table-read port table))
+		(else
+		 (set! dropped-space? #t)
+		 'join)))))))
 
 (define (table-read port table)
   (drop-space port)
@@ -52,7 +61,7 @@
 			  ((not (= (length rest) 1)) (error "Malformed dotted list."))
 			  (else (car rest))))
 		   '()
-		   (delimited-read end port table)))))
+		   (delimited-read end port table #f)))))
 (define (quote-syntax-pair char sym)
   (cons char (lambda (port table) (list sym (table-read port table)))))
 (define (unquote-reader port table)
@@ -86,7 +95,7 @@
 (define curly-read-table
   (alist->hashq-table
    `((#\{ . ,(lambda (port table)
-			   (delimited-read #\} port curly-read-table)))
+			   (delimited-read #\} port curly-read-table #t)))
 	 ,comment-reader-pair
 	 (#\} . ,(lambda _ (error "Unexpected closing delimiter" #\})))
 	 (#\# . ,(lambda (port table)
@@ -109,7 +118,7 @@
 	 (#\, . ,unquote-reader)
 	 (#\{ . ,(lambda (port table)
 			   (cons 'quasiquote
-					 (list (delimited-read #\} port curly-read-table)))))
+					 (list (delimited-read #\} port curly-read-table #t)))))
 	 ,comment-reader-pair
 	 (#\# . ,(lambda (port table)
 			   (case (peek-char port)
@@ -118,7 +127,7 @@
 				  (drop-block-comment port)
 				  (table-read port table))
 				 ((#\()
-				  (apply vector (table-read port)))
+				  (apply vector (table-read port table)))
 				 (else
 				  (unget-char port #\#)
 				  (read port)))))
@@ -144,18 +153,31 @@
 						 x))
 				   (cdr first))))
 			(car first)))))
-  (if (string? sexp)
-	  sexp
-	  (let ((head (if (or (equal? (car sexp) "just") (equal? (car sexp) "join"))
-					  #f
-					  (tag (car sexp))))
-			(body (string-join
-				   (filter-map (lambda (e) (if e (sexp->html e) e))
-							   (cdr sexp))
-				   (if (equal? (car sexp) "join") "" " "))))
-		(if head
-			(string-append "<" (car head) ">" body "</" (cdr head) ">")
-			body))))
+  (cond
+   ((or (not sexp) (null? sexp)) "")
+   ((string? sexp)
+	sexp)
+   (else
+	(let ((head (if (or (equal? (car sexp) "just") (equal? (car sexp) "join"))
+					#f
+					(tag (car sexp))))
+		  (body (apply
+				 string-append
+				 (unfold
+				  null?
+				  (lambda (lst)
+					(define str (sexp->html (car lst)))
+					(if (or (null? (cdr lst)) (eq? (cadr lst) 'join))
+						str
+						(string-append str " ")))
+				  (lambda (lst)
+					(if (and (not (null? (cdr lst))) (eq? (cadr lst) 'join))
+						(cddr lst)
+						(cdr lst)))
+				  (cdr sexp)))))
+	  (if head
+		  (string-append "<" (car head) ">" body "</" (cdr head) ">")
+		  body)))))
 
 (define (cmd prog . args)
   (let* ((pipe (apply open-pipe* OPEN_BOTH prog args))

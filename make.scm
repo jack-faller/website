@@ -35,7 +35,7 @@
 			   (let ((id (car vals)) (count (cadr vals)) (text (cddr vals)))
 				 {{div {id {join footnote- #id}}}
 				  {{a #(link-href "footnote" id)}
-				   {join [ #(number->string count) ]}}
+				   [#(number->string count)]}
 				  #@text
 				  #"<br>"}))
 			 (reverse notes))}}))

@@ -5,7 +5,7 @@
 	{channel
 	 {title Jack Faller's Blog}
 	 {link https://jackfaller.xyz/}
-	 {description Recent blog posts on jackfaller.xyz, my general musings on life.}
+	 {description My blog posts, general musings on life.}
 	 {lastBuildDate #(rfc-822 (current-date))}
 	 #@(map
 		(lambda (post)

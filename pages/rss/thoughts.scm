@@ -3,9 +3,9 @@
    #"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"
    {{rss {version 2.0}}
 	{channel
-	 {title Jack Faller's Blog}
+	 {title Jack Faller's Thoughts}
 	 {link https://jackfaller.xyz/}
-	 {description Recent thoughts on jackfaller.xyz, my general musings on life.}
+	 {description A stream of my thoughts, for anyone who wants to connect their brain to my brain.}
 	 {lastBuildDate #(rfc-822 (current-date))}
 	 #@(map
 		(lambda (post)

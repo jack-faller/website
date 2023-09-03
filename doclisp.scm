@@ -161,20 +161,23 @@
 	(let ((head (if (or (equal? (car sexp) "just") (equal? (car sexp) "join"))
 					#f
 					(tag (car sexp))))
-		  (body (apply
-				 string-append
-				 (unfold
-				  null?
-				  (lambda (lst)
-					(define str (sexp->html (car lst)))
-					(if (or (null? (cdr lst)) (eq? (cadr lst) 'join))
-						str
-						(string-append str " ")))
-				  (lambda (lst)
-					(if (and (not (null? (cdr lst))) (eq? (cadr lst) 'join))
-						(cddr lst)
-						(cdr lst)))
-				  (cdr sexp)))))
+		  (body
+		   (apply
+			string-append
+			(if (equal? (car sexp) "join")
+				(filter-map sexp->html (cdr sexp))
+				(unfold
+				 null?
+				 (lambda (lst)
+				   (define str (sexp->html (car lst)))
+				   (if (or (null? (cdr lst)) (eq? (cadr lst) 'join))
+					   str
+					   (string-append str " ")))
+				 (lambda (lst)
+				   (if (and (not (null? (cdr lst))) (eq? (cadr lst) 'join))
+					   (cddr lst)
+					   (cdr lst)))
+				 (cdr sexp))))))
 	  (if head
 		  (string-append "<" (car head) ">" body "</" (cdr head) ">")
 		  body)))))

@@ -7,6 +7,12 @@
   I've decided to upload some of those things to the internet, and a major
   location for that is this site. I have too many ideas to keep them all to
   myself, so I hope you can get something from the ones I put here.}
+ (link-heading 2 "recent-thoughts"
+			   "Recent Thoughts"
+			   {join #" (" {{a {href /thoughts.html}} see all}
+					 #", " {{a {href /thoughts.rss}} RSS}
+					 #")"})
+ recent-thoughts
  (link-heading 2 "recent-posts"
 			   "Recent Blog Posts"
 			   {join #" (" {{a {href /posts.html}} see all}

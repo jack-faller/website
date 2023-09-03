@@ -129,50 +129,70 @@
    (scandir (thisdir dir)
 			(lambda (file) (not (or (string= file ".") (string= file "..")))))))
 
-(define note #f)
-(define note-ref #f)
-(define posts
-  (filter-map
-   (scheme-file-functor
-	(lambda (name file)
-	  (receive (n nr format-notes) (footnotes)
-		(set! note n)
-		(set! note-ref nr)
-		(let ((p (dl-load file)))
-		  (post-name! p name)
-		  (post-body! p `(,@(post-body p) ,(format-notes)))
-		  (set! note #f)
-		  (set! note-ref #f)
-		  p))))
-   (dirfiles "posts")))
-(define public-posts
-  (sort (filter post-time posts)
-		(lambda (a b) (time>? (post-time a) (post-time b)))))
-
-(for-each
- (lambda (post)
-   (write-sexp-to-html-file
-	(string-append "post/" (post-name post) ".html")
-	(apply template (post-name post) #t (post-written-date post)
-		   (cons*
-			{h1 #(post-title post)}
-			{p #(post-description post)}
-			(post-body post)))))
- posts)
-
-(define post-list
-  (map
-   (lambda (post)
-	 {li {{a {href #(string-append "/post/" (post-name post) ".html")}}
-		  #(post-title post) #"&ndash;" #(post-written-date post)}})
-   public-posts))
 (define (at-most n list)
   (take list (min n (length list))))
-(define recent-posts
-  {ul #@(at-most 10 post-list)})
-(list-head '(1 2 3) 2)
 
-(write-sexp-to-html-file "posts.html" (page {h1 All Posts} {ul #@post-list}))
+(define note #f)
+(define note-ref #f)
+(define (post-like-dir dirname-plural dirname-singular)
+ (define posts
+   (filter-map
+	(scheme-file-functor
+	 (lambda (name file)
+	   (receive (n nr format-notes) (footnotes)
+		 (set! note n)
+		 (set! note-ref nr)
+		 (let ((p (dl-load file)))
+		   (post-name! p name)
+		   (post-body! p `(,@(post-body p) ,(format-notes)))
+		   (set! note #f)
+		   (set! note-ref #f)
+		   p))))
+	(dirfiles dirname-plural)))
+ (define public-posts
+   (sort (filter post-time posts)
+		 (lambda (a b) (time>? (post-time a) (post-time b)))))
+
+ (for-each
+  (lambda (post)
+	(write-sexp-to-html-file
+	 (string-append dirname-singular "/" (post-name post) ".html")
+	 (apply template (post-name post) #t (post-written-date post)
+			(cons*
+			 {h1 #(post-title post)}
+			 {p #(post-description post)}
+			 (post-body post)))))
+  posts)
+
+ (define post-list
+   (map
+	(lambda (post)
+	  {li {{a {href #(string-append "/" dirname-singular "/"
+									(post-name post) ".html")}}
+		   #(post-title post) #"&ndash;" #(post-written-date post)}})
+	public-posts))
+
+ (write-sexp-to-html-file
+  (string-append dirname-plural ".html")
+  (page {h1 All #(string-append
+				  (string-upcase (substring dirname-plural 0 1))
+				  (substring dirname-plural 1))}
+		{ul #@post-list}))
+
+ (define recent-posts {ul #@(at-most 10 post-list)})
+ (values post-list public-posts recent-posts))
+
+(define post-list)
+(define public-posts)
+(define recent-posts)
+(receive (a b c) (post-like-dir "posts" "post")
+  (set! post-list a) (set! public-posts b) (set! recent-posts c))
+(define thought-list)
+(define public-thoughts)
+(define recent-thoughts)
+(receive (a b c) (post-like-dir "thoughts" "thought")
+  (set! thought-list a) (set! public-thoughts b) (set! recent-thoughts c))
+
 (for-each
  (lambda (dir)
    (define ext (basename dir))

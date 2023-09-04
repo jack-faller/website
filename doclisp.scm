@@ -16,11 +16,24 @@
 	found-space))
 
 (define (read-until f port)
+  (define (peek-escape port)
+	(define out (peek-char port))
+	(if (char=? out #\\)
+		(begin
+		  (read-char port)
+		  (list (peek-char port)))
+		out))
   (string-unfold
-   (lambda (c) (or (eof-object? c) (f c)))
-   identity
-   (lambda (ign) (read-char port) (peek-char port))
-   (peek-char port)))
+   (lambda (c)
+	 (if (list? c)
+		 (eof-object? (car c))
+		 (or (eof-object? c) (f c))))
+   (lambda (c)
+	 (if (list? c) (car c) c))
+   (lambda (ign)
+	 (read-char port)
+	 (peek-escape port))
+   (peek-escape port)))
 
 (define stop-unfolding (gensym "stop-unfolding"))
 (define (unfold-until f)

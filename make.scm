@@ -65,7 +65,7 @@
 	{main
 	 {header
 	  #(and wants-back-arrow?
-			{{a {href /} {title home} {class backarrow}} #"&larr;"})
+			{{a {href /} {title home} {class backarrow}} &larr\;})
 	  #(and date {{div {class date}} #date})}
 	 #@body}}})
 ;; Remember to put .codequote on inline code blocks to avoid word breaking.
@@ -169,7 +169,7 @@
 	(lambda (post)
 	  {li {{a {href #(string-append "/" dirname-singular "/"
 									(post-name post) ".html")}}
-		   #(post-title post) #"&ndash;" #(post-written-date post)}})
+		   #(post-title post) &ndash\; #(post-written-date post)}})
 	public-posts))
 
  (write-sexp-to-html-file

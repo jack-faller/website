@@ -156,7 +156,7 @@
  (for-each
   (lambda (post)
 	(write-sexp-to-html-file
-	 (string-append dirname-singular "/" (post-name post) ".html")
+	 (string-append dirname-singular "/" (post-name post))
 	 (apply template (post-name post) #t (post-written-date post)
 			(cons*
 			 {h1 #(post-title post)}
@@ -167,8 +167,7 @@
  (define post-list
    (map
 	(lambda (post)
-	  {li {{a {href #(string-append "/" dirname-singular "/"
-									(post-name post) ".html")}}
+	  {li {{a {href #(string-append "/" dirname-singular "/" (post-name post))}}
 		   #(post-title post) &ndash\; #(post-written-date post)}})
 	public-posts))
 
@@ -209,7 +208,7 @@
 		(lambda (post)
 		  {item
 		   {title #(post-title post)}
-		   {link {join https://jackfaller.xyz/ #directory / #(post-name post) .html}}
+		   {link {join https://jackfaller.xyz/ #directory / #(post-name post)}}
 		   {pubDate #(rfc-822 (post-date post))}
 		   {description
 			#(let ((CD-begin "<![CDATA[") (CD-end "]]>")

@@ -9,13 +9,13 @@
   myself, so I hope you can get something from the ones I put here.}
  (link-heading 2 "recent-thoughts"
 			   "Recent Thoughts"
-			   {join #" (" {{a {href /thoughts.html}} see all}
+			   {join #" (" {{a {href /thoughts}} see all}
 					 #", " {{a {href /thoughts.rss}} RSS}
 					 #")"})
  recent-thoughts
  (link-heading 2 "recent-posts"
 			   "Recent Blog Posts"
-			   {join #" (" {{a {href /posts.html}} see all}
+			   {join #" (" {{a {href /posts}} see all}
 					 #", " {{a {href /blog.rss}} RSS}
 					 #")"})
  recent-posts

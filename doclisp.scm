@@ -190,7 +190,7 @@
 				   (if (and (not (null? (cdr lst))) (eq? (cadr lst) 'join))
 					   (cddr lst)
 					   (cdr lst)))
-				 (cdr sexp))))))
+				 (filter identity (cdr sexp)))))))
 	  (if head
 		  (string-append "<" (car head) ">" body "</" (cdr head) ">")
 		  body)))))

@@ -57,3 +57,8 @@ The symbol ~join~ is inserted into Doclisp code automatically when forms touch i
   `("p" "Paragraph" "with" ("b" "bold" "text") ,'join ".")
 #+end_src
 This inserted join will also inhibit the implicit inserting of spaces. Without this, there would be an unwanted space between the "." and the bold text.
+*** Ignored Values
+~#f~ is ignored and will not have spaces inserted on either side of this it. I personally find it nicer than splicing an empty list if you want to include content conditionally.
+#+begin_src scheme
+  {p Example of conditional content: #(and include-content? {just content})}
+#+end_src

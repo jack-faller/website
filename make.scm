@@ -190,7 +190,7 @@
 (write-posts-to-file "posts.html" "All Blog Posts" #f public-posts)
 (write-posts-to-file "stuff.html" "All Stuff" #t public-stuff)
 
-(define stream-size 30)
+(define stream-size 60)
 (define (rss-stream title include-type? posts description)
   (define (rfc-822 date) (date->string date "~a, ~d ~b ~T ~z"))
   {just

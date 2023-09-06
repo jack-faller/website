@@ -89,21 +89,28 @@
    (date->string date " ~B ~Y")))
 
 (define-record-type <post>
-  (make-post name title time date written-date description body)
+  (make-post name type dir title time date written-date description body)
   post?
   (name         post-name         post-name!)
+  (type         post-type         post-type!)
+  (dir          post-dir          post-dir!)
   (time         post-time         post-time!)
   (title        post-title        post-title!)
   (date         post-date         post-date!)
   (written-date post-written-date post-written-date!)
   (description  post-description  post-description!)
   (body         post-body         post-body!))
+(define (post-link post absolute?)
+  (define relative (string-append "/" (post-dir post) "/" (post-name post)))
+  (if absolute?
+	  (string-append "https://jackfaller.xyz" relative)
+	  relative))
 
 (define (post title date description . body)
   (let* ((date (and date (read-date-string date)))
 		 (sort (and date (date->time-tai date)))
 		 (written-date (if date (date-format date) "DRAFT")))
-	(make-post #f title sort (or date 'draft) written-date description body)))
+	(make-post #f #f #f title sort (or date 'draft) written-date description body)))
 
 (define (page . body) (apply template #f #t #f body))
 (define (home-page . body) (apply template #f #f #f body))
@@ -134,7 +141,18 @@
 
 (define note #f)
 (define note-ref #f)
-(define (post-like-dir dirname-plural dirname-singular)
+(define (post-time->? a b) (time>? (post-time a) (post-time b)))
+(define (post->li include-type?)
+  (lambda (post)
+	{li {{a {href #(post-link post #f)}}
+		 #(and include-type? {just #(post-type post) &ndash\;})
+		 #(post-title post)
+		 &ndash\; #(post-written-date post)}}))
+(define (write-posts-to-file file-name title include-type? posts)
+  (write-sexp-to-html-file
+   file-name
+   (page {h1 #title} {ul #@(map (post->li include-type?) posts)})))
+(define (post-like-dir dirname-plural dirname-singular post-type)
  (define posts
    (filter-map
 	(scheme-file-functor
@@ -145,14 +163,13 @@
 		 (let ((p (dl-load file)))
 		   (post-name! p name)
 		   (post-body! p `(,@(post-body p) ,(format-notes)))
+		   (post-type! p post-type)
+		   (post-dir! p dirname-singular)
 		   (set! note #f)
 		   (set! note-ref #f)
 		   p))))
 	(dirfiles dirname-plural)))
- (define public-posts
-   (sort (filter post-time posts)
-		 (lambda (a b) (time>? (post-time a) (post-time b)))))
-
+ (define public-posts (sort (filter post-time posts) post-time->?))
  (for-each
   (lambda (post)
 	(write-sexp-to-html-file
@@ -163,38 +180,18 @@
 			 {p #(post-description post)}
 			 (post-body post)))))
   posts)
+ public-posts)
 
- (define post-list
-   (map
-	(lambda (post)
-	  {li {{a {href #(string-append "/" dirname-singular "/" (post-name post))}}
-		   #(post-title post) &ndash\; #(post-written-date post)}})
-	public-posts))
-
- (write-sexp-to-html-file
-  (string-append dirname-plural ".html")
-  (page {h1 All #(string-append
-				  (string-upcase (substring dirname-plural 0 1))
-				  (substring dirname-plural 1))}
-		{ul #@post-list}))
-
- (define recent-posts {ul #@(at-most 10 post-list)})
- (values post-list public-posts recent-posts))
-
-(define post-list)
-(define public-posts)
-(define recent-posts)
-(receive (a b c) (post-like-dir "posts" "post")
-  (set! post-list a) (set! public-posts b) (set! recent-posts c))
-(define thought-list)
-(define public-thoughts)
-(define recent-thoughts)
-(receive (a b c) (post-like-dir "thoughts" "thought")
-  (set! thought-list a) (set! public-thoughts b) (set! recent-thoughts c))
-
+(define public-posts (post-like-dir "posts" "post" "Blog Post"))
+(define public-thoughts (post-like-dir "thoughts" "thought" "Thought"))
+(define public-stuff (merge public-thoughts public-posts post-time->?))
+(define recent-stuff (map (post->li #t) (at-most 10 public-stuff)))
+(write-posts-to-file "thoughts.html" "All Thoughts" #f public-thoughts)
+(write-posts-to-file "posts.html" "All Blog Posts" #f public-posts)
+(write-posts-to-file "stuff.html" "All Stuff" #t public-stuff)
 
 (define stream-size 30)
-(define (rss-stream title posts directory description)
+(define (rss-stream title include-type? posts description)
   (define (rfc-822 date) (date->string date "~a, ~d ~b ~T ~z"))
   {just
    #"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"
@@ -207,8 +204,10 @@
 	 #@(map
 		(lambda (post)
 		  {item
-		   {title #(post-title post)}
-		   {link {join https://jackfaller.xyz/ #directory / #(post-name post)}}
+		   {title
+			#(and include-type? {just #(post-type post) &ndash\;})
+		  	#(post-title post)}
+		   {link #(post-link post #t)}
 		   {pubDate #(rfc-822 (post-date post))}
 		   {description
 			#(let ((CD-begin "<![CDATA[") (CD-end "]]>")

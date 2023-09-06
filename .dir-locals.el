@@ -2,7 +2,9 @@
 				   (defun post-template ()
 					 (interactive)
 					 (insert "(post
- \"TITLE\"
+ \""
+							 (string-replace "-" " " (file-name-base (buffer-file-name)))
+							 "\"
  #f
  \"SUMMARY\"
  )"))

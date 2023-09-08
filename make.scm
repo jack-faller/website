@@ -173,7 +173,7 @@
  (for-each
   (lambda (post)
 	(write-sexp-to-html-file
-	 (string-append dirname-singular "/" (post-name post))
+	 (string-append dirname-singular "/" (post-name post) ".html")
 	 (apply template (post-name post) #t (post-written-date post)
 			(cons*
 			 {h1 #(post-title post)}

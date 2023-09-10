@@ -145,9 +145,11 @@
 (define (post->li include-type?)
   (lambda (post)
 	{li {{a {href #(post-link post #f)}}
-		 #(and include-type? {just #(post-type post) &ndash\;})
-		 #(post-title post)
-		 &ndash\; #(post-written-date post)}}))
+		 #(date->string (post-date post) "~y/~m/~d")
+		 #(and include-type? {just &ndash\; #(post-type post)})
+		 &ndash\;
+		 #(post-title post)}}))
+
 (define (write-posts-to-file file-name title include-type? posts)
   (write-sexp-to-html-file
    file-name
@@ -185,7 +187,6 @@
 (define public-posts (post-like-dir "posts" "post" "Blog Post"))
 (define public-thoughts (post-like-dir "thoughts" "thought" "Thought"))
 (define public-stuff (merge public-thoughts public-posts post-time->?))
-(define recent-stuff (map (post->li #t) (at-most 10 public-stuff)))
 (write-posts-to-file "thoughts.html" "All Thoughts" #f public-thoughts)
 (write-posts-to-file "posts.html" "All Blog Posts" #f public-posts)
 (write-posts-to-file "stuff.html" "All Stuff" #t public-stuff)

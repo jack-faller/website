@@ -12,7 +12,7 @@
 			   {join #" (" {{a {href /stuff}} see all}
 					 #", " {{a {href /stuff.rss}} RSS}
 					 #")"})
- {ul #@recent-stuff}
+ {ul #@(map (post->li #t) (at-most 10 public-stuff))}
  (link-heading 2 "all-stuff" "All Stuff")
  {ul
   {li Thoughts: {{a {href /thoughts}} see all}, {{a {href /thoughts.rss}} RSS}}

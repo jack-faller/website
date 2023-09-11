@@ -1,4 +1,5 @@
-((nil . ((eval . (progn
+((nil . ((compile-command . "make")
+		 (eval . (progn
 				   (defun post-template ()
 					 (interactive)
 					 (insert "(post

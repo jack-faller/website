@@ -1,12 +1,12 @@
 (home-page
- {h1 Jack Faller's Personal Site}
+ {h1 Here Lies That Which Is Digital of Jack Faller}
  (link-heading 2 "about" "About Me and This Site")
  {p 
-  Hi, I'm Jack Faller. (As you may have surmised from title of this page.) I've
-  been programming for a few years now, and doing some other things too. Now
-  I've decided to upload some of those things to the internet, and a major
-  location for that is this site. I have too many ideas to keep them all to
-  myself, so I hope you can get something from the ones I put here.}
+  Hi, I'm Jack Faller. (As you may have surmised from title of this page.)
+  I'm primarily a programmer.
+  I've been doing it for some years now and I like to think I'm rather good at it.
+  This is the place I will be collating and writing about the things I've done (programming or otherwise), and sharing my general musings on life.
+  I have been cursed with a great many ideas and I hope they may be of some use to you.}
  (link-heading 2 "all-stuff" "All Stuff")
  {ul
   {li Thoughts: {{a {href /thoughts}} see all}, {{a {href /thoughts.rss}} RSS}}

@@ -10,7 +10,7 @@
   People in the past have been wrong, so clearly people in the present can be wrong.
   Yet centrists deny this reality.
   Words shouldn't be used because people don't like them being used, even if they obviously are applicable.
-  Facts aught to be avoided as they can make certain opinions look bad.
+  Facts aught to be avoided as they can influence people's opnions.
   Reality is but an inconvenient footnote that might cause uneccessary bias in favour of one side or the other.
   Centrism has replaced logical thought in these people's minds.
   Blindly applying a strategy of {q take the middle road} usually makes them seem sophisticated and diplomatic, but completely fails when you are talking about something this black and white.})

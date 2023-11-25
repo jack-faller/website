@@ -5,7 +5,7 @@ servdir: generated data $(shell find data) server-url.txt
 	cp -rT generated/ servdir
 all: servdir nginx-token send
 send:
-	rsync --recursive --compress data/ generated/ "$$(cat server-url.txt):/data/" --delete-after
+	rsync --recursive --compress data/ generated/ "$$(cat server-url.txt):/website/" --delete-after
 generated: $(shell find pages posts thoughts) doclisp.scm make.scm
 	guile doclisp.scm
 nginx-token: nginx.conf server-url.txt

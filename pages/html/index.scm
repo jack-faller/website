@@ -1,7 +1,7 @@
 (home-page
  {h1 Here Lies That Which Is Digital of Jack Faller}
  (link-heading 2 "about" "About Me and This Site")
- {p 
+ {p
   Hi, I'm Jack Faller. (As you may have surmised from title of this page.)
   I'm primarily a programmer.
   I've been doing it for some years now and I like to think I'm rather good at it.

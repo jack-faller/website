@@ -1,7 +1,18 @@
+<<<<<<< Updated upstream
 .PHONY: all clean send
 servdir: generated data $(shell find data) server-url.txt
+=======
+.PHONY: all clean send image tiling/clean
+all: servdir nginx-token image
+send: all
+	rsync --recursive --compress static/ generated/ "$$(cat server-url.txt):/website/" --delete-after
+clean: tiling/clean
+	rm -rf servdir nginx-token generated || true
+image: tiling/output.png
+servdir: generated static $(shell find static) server-url.txt
+>>>>>>> Stashed changes
 	rm -rf servdir || true
-	cp -rT data servdir
+	cp -rT static servdir
 	cp -rT generated/ servdir
 all: servdir nginx-token send
 send:

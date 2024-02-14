@@ -18,7 +18,7 @@
 (define (read-until f port)
   (define (peek-escape port)
 	(define out (peek-char port))
-	(if (char=? out #\\)
+	(if (eq? out #\\)
 		(begin
 		  (read-char port)
 		  (list (peek-char port)))
@@ -35,25 +35,25 @@
 	 (peek-escape port))
    (peek-escape port)))
 
-(define stop-unfolding (gensym "stop-unfolding"))
+(define stop-unfolding (substring/copy "stop-unfolding" 0))
 (define (unfold-until f)
   (unfold (lambda (c) (eq? c stop-unfolding)) identity (lambda (_) (f)) (f)))
 
 (define (delimited-read end port table join?)
   (let ((dropped-space? #t))
    (unfold-until
-   (lambda ()
-	 (set! dropped-space? (or (drop-space port) dropped-space?))
-	 (let ((peeked (peek-char port)))
-	   (cond
-		((eof-object? peeked) (error "Missing closing delimiter."))
-		((eq? peeked end) (read-char port) stop-unfolding)
-		((or dropped-space? (not join?))
-		 (set! dropped-space? #f)
-		 (table-read port table))
-		(else
-		 (set! dropped-space? #t)
-		 'join)))))))
+	(lambda ()
+	  (set! dropped-space? (or (drop-space port) dropped-space?))
+	  (let ((peeked (peek-char port)))
+		(cond
+		 ((eof-object? peeked) (error "Missing closing delimiter."))
+		 ((eq? peeked end) (read-char port) stop-unfolding)
+		 ((or dropped-space? (not join?))
+		  (set! dropped-space? #f)
+		  (table-read port table))
+		 (else
+		  (set! dropped-space? #t)
+		  'join)))))))
 
 (define (table-read port table)
   (drop-space port)
@@ -64,13 +64,17 @@
 	 (fun (read-char port) (fun port table))
 	 (else ((hashq-ref table 'atom) port table)))))
 
+(define comment (substring/copy "comment" 0))
 (define (list-syntax-pair start end)
   (cons start
 		(lambda (port table)
 		  (fold-right
 		   (lambda (i rest)
 			 (cond
-			  ((not (eq? i '#{.}#)) (cons i rest))
+			  ((not (or (eq? i '#{.}#)))
+			   (if (eq? comment i)
+				   rest
+				   (cons i rest)))
 			  ((not (= (length rest) 1)) (error "Malformed dotted list."))
 			  (else (car rest))))
 		   '()
@@ -89,21 +93,21 @@
 (define comment-reader-pair
   (cons #\; (lambda (port table)
 			  (read-line port)
-			  (table-read port table))))
+			  comment)))
 (define (drop-block-comment port)
   (let ((got (cdr (read-delimited "|#" port 'split))))
 	(cond
 	 ((eof-object? got)
 	  (error "Unterminated comment."))
 	 ((and (eq? got #\|) (eq? (peek-char port) #\#))
-	  (read-char port))
+	  (read-char port)
+	  comment)
 	 ((and (eq? got #\#) (eq? (peek-char port) #\|))
 	  (read-char port)
 	  (drop-block-comment port)
 	  (drop-block-comment port))
 	 (else
-	  ;; (drop-block-comment port)
-	  (read-line port)))))
+	  (drop-block-comment port)))))
 
 (define curly-read-table
   (alist->hashq-table
@@ -137,8 +141,7 @@
 			   (case (peek-char port)
 				 ((#\|)
 				  (read-char port)
-				  (drop-block-comment port)
-				  (table-read port table))
+				  (drop-block-comment port))
 				 ((#\()
 				  (apply vector (table-read port table)))
 				 (else
@@ -149,7 +152,10 @@
 			'(#\) #\] #\})))))
 
 (define (doclisp-reader port)
-  (table-read port default-read-table))
+  (define val (table-read port default-read-table))
+  (if (eq? val comment)
+	  (doclisp-reader port)
+	  val))
 
 (define (sexp->html sexp)
   (define (tag first)

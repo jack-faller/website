@@ -26,9 +26,9 @@ $(glad_dir): tiling/glad-flags.txt
 $(glad_dir)/src/gl.c: $(glad_dir)
 tiling/main: tiling/main.cpp $(glad_dir)/src/gl.c
 	g++ -Wall -lc $(flags) $(glad_flags) $^ -o $@
-tiling/output.rgba: tiling/main tiling/shader.vert tiling/shader.frag
+tiling/output.rgba: tiling/main tiling/*.vert tiling/*.frag
 	$< --size $(img_size) --output $@
 tiling/output.png: tiling/output.rgba
-	convert -size $(img_size) -depth 8 $< $@
+	convert -flip -size $(img_size) -depth 8 $< $@
 tiling/clean:
 	rm -rf $(glad_dir) tiling/main tiling/output.rgba tiling/output.png

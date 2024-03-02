@@ -10,7 +10,7 @@
   (define (link . body)
 	{{a {class headinglink} #(link-href "heading" id)}
 	 #@body})
-  {{div {id heading-#id} }
+  {{div {id heading-#id}}
    {#(string-append "h" (number->string depth))
 	#@(let loop ((result '()) (list text) (link? #t))
 		(if (null? list)

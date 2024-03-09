@@ -9,10 +9,10 @@
   I have been cursed with a great many ideas and I hope they may be of some use to you.}
  (link-heading 2 "all-stuff" "All Stuff")
  {ul
-  {li Thoughts: {{a {href /thoughts}} see all}, {{a {href /thoughts.rss}} RSS}}
-  {li Blog: {{a {href /posts}} see all}, {{a {href /blog.rss}} RSS}}
-  {li Github: {{a {href https://github.com/jack-faller}} github.com/jack-faller}}
-  {li Email: {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
+  {li {b Thoughts}: {{a {href /thoughts}} see all}, {{a {href /thoughts.rss}} RSS}}
+  {li {b Blog}: {{a {href /posts}} see all}, {{a {href /blog.rss}} RSS}}
+  {li {b Github}: {{a {href https://github.com/jack-faller}} github.com/jack-faller}}
+  {li {b Email}: {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
  (link-heading 2 "recent-stuff"
 			   "Recent Stuff"
 			   {join #" (" {{a {href /stuff}} see all}

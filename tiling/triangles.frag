@@ -1,9 +1,9 @@
 #version 330 core
 
-in vec3 normal;
+in vec4 normal;
 
-out vec4 colour;
+layout (location = 0) out vec4 colour;
 
 void main() {
-  colour = vec4(normal, 1);
+  colour = normal;
 }

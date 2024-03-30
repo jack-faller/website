@@ -9,19 +9,19 @@
   I have been cursed with a great many ideas and I hope they may be of some use to you.}
  (link-heading 2 "all-stuff" "All Stuff")
  {ul
-  {li {b Thoughts}: {{a {href /thoughts}} see all}, {{a {href /thoughts.rss}} RSS}}
-  {li {b Blog}: {{a {href /posts}} see all}, {{a {href /blog.rss}} RSS}}
+  {li {b Thoughts}: {{a {href /thoughts.html}} see all}, {{a {href /thoughts.rss}} RSS}}
+  {li {b Blog}: {{a {href /posts.html}} see all}, {{a {href /blog.rss}} RSS}}
   {li {b Github}: {{a {href https://github.com/jack-faller}} github.com/jack-faller}}
   {li {b Email}: {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
  (link-heading 2 "recent-stuff"
 			   "Recent Stuff"
-			   {join #" (" {{a {href /stuff}} see all}
-					 #", " {{a {href /stuff.rss}} RSS}
+			   {join #" (" {{a {href ./stuff.html}} see all}
+					 #", " {{a {href ./stuff.rss}} RSS}
 					 #")"})
- {ul #@(map (post->li #t) (at-most 10 public-stuff))}
+ {ul #@(map (post->li "." #t) (at-most 10 public-stuff))}
  (link-heading 2 "recent-blog"
 			   "Recent Blog Posts"
-			   {join #" (" {{a {href /posts}} see all}
-					 #", " {{a {href /blog.rss}} RSS}
+			   {join #" (" {{a {href ./posts.html}} see all}
+					 #", " {{a {href ./blog.rss}} RSS}
 					 #")"})
- {ul #@(map (post->li #f) (at-most 5 public-posts))})
+ {ul #@(map (post->li "." #f) (at-most 5 public-posts))})

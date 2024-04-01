@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string>
 #include <sys/types.h>
+#include <utility>
 #include <vector>
 using namespace glm;
 
@@ -119,9 +120,52 @@ void GLAPIENTRY print_gl_error(
 	);
 }
 
+struct GLProgram {
+	GLuint program;
+	GLProgram(const char *file) { program = load_shaders(file); }
+	~GLProgram() { glDeleteProgram(program); }
+	GLuint uniform(const char *name) {
+		return glGetUniformLocation(program, name);
+	}
+	void use() { glUseProgram(program); }
+};
+
+struct GLAttribArrayEnable {
+	int array;
+	int divisor = 0;
+	GLAttribArrayEnable(int array) : array(array) {}
+	~GLAttribArrayEnable() {
+		glDisableVertexAttribArray(array);
+		if (divisor != 0)
+			glVertexAttribDivisor(array, 0);
+	}
+	void set_divisor(int n) { glVertexAttribDivisor(array, divisor = n); }
+};
+template <int n> struct GLBuffer {
+	GLuint v;
+	GLBuffer(std::vector<glm::vec<n, float>> &data) {
+		glGenBuffers(1, &v);
+		glBindBuffer(GL_ARRAY_BUFFER, v);
+		glBufferData(
+			GL_ARRAY_BUFFER,
+			data.size() * sizeof(data[0]),
+			&data[0],
+			GL_STATIC_DRAW
+		);
+	}
+	~GLBuffer() { glDeleteBuffers(1, &v); }
+	GLAttribArrayEnable bind(int array) {
+		glEnableVertexAttribArray(array);
+		glBindBuffer(GL_ARRAY_BUFFER, v);
+		glVertexAttribPointer(array, n, GL_FLOAT, GL_FALSE, 0, nullptr);
+		return { array };
+	}
+};
+
+enum NormalOrImage { NORMAL, IMAGE };
 int main(int argc, char **argv) {
 	int copies = 1;
-	vec<2, int> screen = { 74, 108 };
+	vec<2, int> screen = { 108, 74 };
 	char *output = nullptr;
 	for (int val; -1 != (val = getopt_long(argc, argv, "", options, nullptr));)
 		switch (val) {
@@ -177,78 +221,85 @@ int main(int argc, char **argv) {
 	glGenVertexArrays(1, &vertex_array);
 	glBindVertexArray(vertex_array);
 
-	static const vec3 vertices[] = {
-		-vec3(1.0f, -1.0f, 0.0f), -vec3(-1.0f, -1.0f, 0.0f),
-		-vec3(0.0f, 1.0f, 0.0f),  vec3(1.0f, -1.0f, 0.0f),
-		vec3(-1.0f, -1.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f),
-		vec3(0.0f, -1.0f, 1.0f),  vec3(0.0f, -1.0f, -1.0f),
-		vec3(0.0f, 1.0f, 0.0f),
+	vec2 view(0, 5);
+	view.x = view.y * screen.x / screen.y;
+
+	std::vector<vec3> cube {
+		vec3(0, 1, 1), vec3(0, 0, 1), vec3(1, 0, 1),
+		vec3(1, 1, 0), vec3(0, 1, 0), vec3(0, 1, 1),
+		vec3(1, 0, 1), vec3(1, 0, 0), vec3(1, 1, 0),
 	};
-	static vec3 normals[sizeof(vertices)];
-	for (int i = 0; i < LENGTH(normals); ++i) {
-#define VERT(num) vertices[i / 3 * 3 + num]
-		normals[i] = normalize(cross(VERT(1) - VERT(0), VERT(2) - VERT(0)));
-#undef VERT
+	for (int i = 0; i < 3; ++i) {
+		cube.push_back(cube[i * 3 + 2]);
+		cube.push_back(vec3(1, 1, 1));
+		cube.push_back(cube[i * 3]);
 	}
-	static vec3 fullscreen_tris[] = {
+	std::vector<vec3> normals;
+	for (int i = 0; i < cube.size() / 3; ++i)
+		for (int j = 0; j < 3; ++j)
+			normals.push_back(normalize(cross(
+				cube[i * 3 + 1] - cube[i * 3], cube[i * 3 + 2] - cube[i * 3]
+			)));
+	std::vector<vec3> fullscreen_tris {
 		vec3(1, 1, 0),  vec3(-1, 1, 0), vec3(1, -1, 0),
 		vec3(-1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0),
 	};
-	GLuint input_vertices;
-	glGenBuffers(1, &input_vertices);
-	glBindBuffer(GL_ARRAY_BUFFER, input_vertices);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	GLuint input_normals;
-	glGenBuffers(1, &input_normals);
-	glBindBuffer(GL_ARRAY_BUFFER, input_normals);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(normals), normals, GL_STATIC_DRAW);
-	GLuint input_fullscreen;
-	glGenBuffers(1, &input_fullscreen);
-	glBindBuffer(GL_ARRAY_BUFFER, input_fullscreen);
-	glBufferData(
-		GL_ARRAY_BUFFER,
-		sizeof(fullscreen_tris),
-		fullscreen_tris,
-		GL_STATIC_DRAW
-	);
+	std::vector<vec3> cube_offsets { vec3(0, 0, 0) };
+	for (int i = 0; i < 9; ++i)
+		for (int sign = -1; sign <= 1; sign += 2)
+			for (int ax = 0; ax < 3; ++ax)
+				cube_offsets.push_back({}), cube_offsets.back()[ax] = sign * i;
+	std::vector<vec2> square {
+		vec2(1, 1), vec2(-1, 1), vec2(-1, -1),
+		vec2(1, 1), vec2(1, -1), vec2(-1, -1),
+	};
+	// Last component is radius, rest are position.
+	std::vector<vec4> spheres { vec4(0, 0, 0, 3) };
+	for (int sign = -1; sign <= 1; sign += 2)
+		for (int ax = 0; ax < 3; ++ax)
+			spheres.push_back(vec4(0, 0, 0, 3)),
+				spheres.back()[ax] = sign * view.x * sqrt(2);
+	GLBuffer input_vertices(cube);
+	GLBuffer input_normals(normals);
+	GLBuffer input_offsets(cube_offsets);
+	GLBuffer input_fullscreen(fullscreen_tris);
+	GLBuffer input_square(square);
+	GLBuffer input_spheres(spheres);
 
-	GLuint triangles_program = load_shaders("triangles");
-	GLuint triangles_transform
-		= glGetUniformLocation(triangles_program, "transform");
-	GLuint triangles_perspective
-		= glGetUniformLocation(triangles_program, "perspective");
-	GLuint colour_program = load_shaders("colour");
-	GLuint colour_normals = glGetUniformLocation(colour_program, "normals");
-	GLuint colour_light_direction
-		= glGetUniformLocation(colour_program, "light_direction");
-	GLuint colour_dither_map
-		= glGetUniformLocation(colour_program, "dither_map");
+	GLProgram triangles_program("triangles");
+	GLuint triangles_transform = triangles_program.uniform("transform");
+	GLuint triangles_perspective = triangles_program.uniform("perspective");
+	GLProgram spheres_program("spheres");
+	GLuint spheres_transform = spheres_program.uniform("transform");
+	GLuint spheres_perspective = spheres_program.uniform("perspective");
+	GLProgram colour_program("colour");
+	GLuint colour_normals = colour_program.uniform("normals");
+	GLuint colour_light_direction = colour_program.uniform("light_direction");
+	GLuint colour_dither_map = colour_program.uniform("dither_map");
 
-	float view_height = 5;
+	GLuint colour_textures[2];
+	glGenTextures(2, colour_textures);
+	for (int i = 0; i < 2; ++i) {
+		glBindTexture(GL_TEXTURE_2D, colour_textures[i]);
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_RGBA,
+			screen.x,
+			screen.y,
+			0,
+			GL_RGBA,
+			GL_UNSIGNED_BYTE,
+			nullptr
+		);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	}
+	glBindTexture(GL_TEXTURE_2D, colour_textures[NORMAL]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	GLuint frame_buffer;
-	glGenFramebuffers(1, &frame_buffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, frame_buffer);
-	GLuint normal_texture;
-	glGenTextures(1, &normal_texture);
-	glBindTexture(GL_TEXTURE_2D, normal_texture);
-	glTexImage2D(
-		GL_TEXTURE_2D,
-		0,
-		GL_RGBA,
-		screen.x,
-		screen.y,
-		0,
-		GL_RGBA,
-		GL_UNSIGNED_BYTE,
-		nullptr
-	);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glFramebufferTexture(
-		GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, normal_texture, 0
-	);
-
+	// Didn't end up needing this, could be a regular depth buffer.
 	GLuint depth_texture;
 	glGenTextures(1, &depth_texture);
 	glBindTexture(GL_TEXTURE_2D, depth_texture);
@@ -266,26 +317,28 @@ int main(int argc, char **argv) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
+	GLuint frame_buffers[2];
+	glGenFramebuffers(LENGTH(frame_buffers), frame_buffers);
+	for (int i = 0; i < 2; ++i) {
+		glBindFramebuffer(GL_FRAMEBUFFER, frame_buffers[i]);
+		glFramebufferTexture(
+			GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colour_textures[i], 0
+		);
+		const GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0 };
+		glDrawBuffers(LENGTH(draw_buffers), draw_buffers);
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, frame_buffers[NORMAL]);
 	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_texture, 0);
-
-	const GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0 };
-	glDrawBuffers(LENGTH(draw_buffers), draw_buffers);
-
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		eprintf("Frame-buffer setup failed.\n");
 		return 1;
 	}
 
-	float ratio = (float)screen.x / screen.y;
-	mat4 perspective_matrix = ortho(
-		-view_height * ratio,
-		view_height * ratio,
-		-view_height,
-		view_height,
-		0.1f,
-		100.0f
-	);
-	mat4 transform_matrix = lookAt(vec3(4, 4, 4), vec3(0, 0, 0), vec3(0, 1, 0));
+	mat4 perspective_matrix
+		= ortho(-view.x, view.x, -view.y, view.y, 0.1f, 100.0f);
+	mat4 transform_matrix
+		= lookAt(vec3(10, 10, 10), vec3(0, 0, 0), vec3(0, 1, 0));
 
 	float dither_map[25] = { 0 };
 	for (int i = 0; i < LENGTH(dither_map); ++i) {
@@ -297,13 +350,12 @@ int main(int argc, char **argv) {
 	}
 
 	do {
-		glBindFramebuffer(GL_FRAMEBUFFER, frame_buffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, frame_buffers[NORMAL]);
 		glViewport(0, 0, screen.x, screen.y);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		/* Draw the triangle normals. */ {
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			glUseProgram(triangles_program);
+			triangles_program.use();
 			glUniformMatrix4fv(
 				triangles_perspective, 1, GL_FALSE, &perspective_matrix[0][0]
 			);
@@ -311,55 +363,100 @@ int main(int argc, char **argv) {
 				triangles_transform, 1, GL_FALSE, &transform_matrix[0][0]
 			);
 
-			glEnableVertexAttribArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, input_vertices);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+			GLAttribArrayEnable enable_zero = input_vertices.bind(0);
+			GLAttribArrayEnable enable_one = input_normals.bind(1);
+			GLAttribArrayEnable enable_two = input_offsets.bind(2);
+			enable_two.set_divisor(1);
 
-			glEnableVertexAttribArray(1);
-			glBindBuffer(GL_ARRAY_BUFFER, input_normals);
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-			glDrawArrays(GL_TRIANGLES, 0, LENGTH(vertices));
-
-			glDisableVertexAttribArray(0);
-			glDisableVertexAttribArray(1);
+			glDrawArraysInstanced(
+				GL_TRIANGLES, 0, cube.size(), cube_offsets.size()
+			);
 		}
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(0, 0, screen.x * copies, screen.y * copies);
+		/* Draw the spheres. */ {
+			spheres_program.use();
+			glUniformMatrix4fv(
+				spheres_perspective, 1, GL_FALSE, &perspective_matrix[0][0]
+			);
+			glUniformMatrix4fv(
+				spheres_transform, 1, GL_FALSE, &transform_matrix[0][0]
+			);
+
+			GLAttribArrayEnable enable_zero = input_square.bind(0);
+			GLAttribArrayEnable enable_one = input_spheres.bind(1);
+			enable_one.set_divisor(1);
+
+			glDrawArraysInstanced(
+				GL_TRIANGLES, 0, square.size(), spheres.size()
+			);
+		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, frame_buffers[IMAGE]);
+		glViewport(0, 0, screen.x, screen.y);
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		/* Render colours based on normals. */ {
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			glUseProgram(colour_program);
+			colour_program.use();
 
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, normal_texture);
+			glBindTexture(GL_TEXTURE_2D, colour_textures[NORMAL]);
 			glUniform1i(colour_normals, 0);
-			vec4 light = normalize(transform_matrix * vec4(1, 1, 1, 0));
+			vec4 light = normalize(transform_matrix * vec4(1, 0, 0, 0));
 			glUniform4fv(colour_light_direction, 1, &light[0]);
 			glUniform1fv(colour_dither_map, LENGTH(dither_map), dither_map);
 
-			glEnableVertexAttribArray(0);
-			glBindBuffer(GL_ARRAY_BUFFER, input_fullscreen);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+			GLAttribArrayEnable _zero = input_fullscreen.bind(0);
 
-			glDrawArrays(GL_TRIANGLES, 0, LENGTH(fullscreen_tris));
-			glDisableVertexAttribArray(0);
+			glDrawArrays(GL_TRIANGLES, 0, fullscreen_tris.size());
 		}
 
 		if (output != nullptr) {
-			uint8_t *buf = new uint8_t[screen.x * screen.y * 4];
-			glReadBuffer(GL_BACK);
-			glReadPixels(
-				0, 0, screen.x, screen.y, GL_RGBA, GL_UNSIGNED_BYTE, buf
-			);
 			FILE *f = fopen(output, "w");
-			fwrite(buf, sizeof(uint8_t), screen.x * screen.y * 4, f);
+			output = nullptr;
+
+      // PPM header.
+			fprintf(f, "P6\n%d %d\n255\n", screen.x, screen.y);
+
+			uint8_t(*buf)[3] = new uint8_t[screen.x * screen.y][3];
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glReadPixels(
+				0, 0, screen.x, screen.y, GL_RGB, GL_UNSIGNED_BYTE, buf
+			);
+			// Flip image vertically by swapping rows of pixels.
+#define AREF(X, Y) buf[(Y) * screen.x + X]
+			for (int y = 0; y < screen.y / 2; ++y)
+				std::swap_ranges(
+					&AREF(0, y),
+					&AREF(screen.x - 1, y),
+					&AREF(0, screen.y - y - 1)
+				);
+#undef AREF
+
+			fwrite(buf, sizeof(*buf), screen.x * screen.y, f);
 			fclose(f);
 			delete[] buf;
 			break;
 		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, screen.x * copies, screen.y * copies);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		for (int x = 0; x < copies; ++x)
+			for (int y = 0; y < copies; ++y)
+				glBlitNamedFramebuffer(
+					frame_buffers[IMAGE],
+					0,
+					0,
+					0,
+					screen.x,
+					screen.y,
+					screen.x * x,
+					screen.y * y,
+					screen.x * (x + 1),
+					screen.y * (y + 1),
+					GL_COLOR_BUFFER_BIT,
+					GL_NEAREST
+				);
 
 		glfwSwapBuffers(window);
 		glfwWaitEvents();
@@ -367,13 +464,9 @@ int main(int argc, char **argv) {
 	         && glfwGetKey(window, GLFW_KEY_Q) != GLFW_PRESS
 	         && glfwWindowShouldClose(window) == 0);
 
-	glDeleteBuffers(1, &input_vertices);
-	glDeleteBuffers(1, &input_normals);
-	glDeleteFramebuffers(1, &frame_buffer);
-	glDeleteTextures(1, &normal_texture);
+	glDeleteFramebuffers(LENGTH(frame_buffers), frame_buffers);
+	glDeleteTextures(LENGTH(colour_textures), colour_textures);
 	glDeleteTextures(1, &depth_texture);
-	glDeleteVertexArrays(1, &input_vertices);
-	glDeleteProgram(triangles_program);
 
 	glfwTerminate();
 }

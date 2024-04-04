@@ -60,6 +60,7 @@ GLuint load_shader(const char *path, GLenum shader_type) {
 		std::vector<char> error_message(log_length + 1);
 		glGetShaderInfoLog(id, log_length, NULL, &error_message[0]);
 		eprintf("%s\n", &error_message[0]);
+		exit(1);
 	}
 	return id;
 }
@@ -161,11 +162,19 @@ template <int n> struct GLBuffer {
 	}
 };
 
-enum NormalOrImage { NORMAL, IMAGE };
+void push_rotate(
+	std::vector<vec3> &dst, std::vector<vec3> src, float angle, vec3 axis
+) {
+	mat4 matrix = rotate(mat4(1), angle, axis);
+	for (auto i : src)
+		dst.push_back(matrix * vec4(i, 0));
+}
+
+enum Index { NORMAL, IMAGE, DITHER };
 int main(int argc, char **argv) {
 	int copies = 1;
 	vec<2, int> screen(108, 0);
-  screen.y = screen.x * tan(radians(30.0));
+	screen.y = screen.x * tan(radians(30.0));
 	char *output = nullptr;
 	for (int val; -1 != (val = getopt_long(argc, argv, "", options, nullptr));)
 		switch (val) {
@@ -219,46 +228,52 @@ int main(int argc, char **argv) {
 
 	vec2 view(0, 5);
 	view.x = view.y * screen.x / screen.y;
-  float sphere_dist = view.x / sin(radians(45.0));
+	float sphere_dist = view.x / sin(radians(45.0));
 
-	std::vector<vec3> cube {
-		vec3(0, 1, 1), vec3(0, 0, 1), vec3(1, 0, 1),
-		vec3(1, 1, 0), vec3(0, 1, 0), vec3(0, 1, 1),
-		vec3(1, 0, 1), vec3(1, 0, 0), vec3(1, 1, 0),
-	};
-	for (int i = 0; i < 3; ++i) {
-		cube.push_back(cube[i * 3 + 2]);
-		cube.push_back(vec3(1, 1, 1));
-		cube.push_back(cube[i * 3]);
+	float beam_width = 1.75;
+	float sphere_radius = 4;
+
+	float beam_length = sphere_dist / 2;
+	std::vector<vec3> beams;
+	/* Construct the beams by rotating boxes. */ {
+		std::vector<vec3> tri {
+			vec3(beam_length, beam_width / 2, beam_width / 2),
+			vec3(-beam_length, beam_width / 2, beam_width / 2),
+			vec3(beam_length, -beam_width / 2, beam_width / 2),
+		};
+		std::vector<vec3> face;
+		push_rotate(face, tri, 0, vec3(1, 0, 0));
+		push_rotate(face, tri, radians(180.0), vec3(0, 0, 1));
+		std::vector<vec3> box;
+		push_rotate(box, face, 0, vec3(1, 0, 0));
+		push_rotate(box, face, radians(-90.0), vec3(1, 0, 0));
+
+		push_rotate(beams, box, 0, vec3(1, 0, 0));
+		push_rotate(beams, box, radians(90.0), vec3(0, 1, 0));
+		push_rotate(beams, box, radians(-90.0), vec3(0, 0, 1));
 	}
 	std::vector<vec3> normals;
-	for (int i = 0; i < cube.size() / 3; ++i)
+	for (int i = 0; i < beams.size() / 3; ++i)
 		for (int j = 0; j < 3; ++j)
 			normals.push_back(normalize(cross(
-				cube[i * 3 + 1] - cube[i * 3], cube[i * 3 + 2] - cube[i * 3]
+				beams[i * 3 + 1] - beams[i * 3], beams[i * 3 + 2] - beams[i * 3]
 			)));
 	std::vector<vec3> fullscreen_tris {
 		vec3(1, 1, 0),  vec3(-1, 1, 0), vec3(1, -1, 0),
 		vec3(-1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0),
 	};
-	std::vector<vec3> cube_offsets { vec3(0, 0, 0) };
-	for (int i = 0; i < sphere_dist; ++i)
-		for (int sign = -1; sign <= 1; sign += 2)
-			for (int ax = 0; ax < 3; ++ax)
-				cube_offsets.push_back({}), cube_offsets.back()[ax] = sign * i;
 	std::vector<vec2> square {
 		vec2(1, 1), vec2(-1, 1), vec2(-1, -1),
 		vec2(1, 1), vec2(1, -1), vec2(-1, -1),
 	};
 	// Last component is radius, rest are position.
-	std::vector<vec4> spheres { vec4(0, 0, 0, 3) };
+	std::vector<vec4> spheres { vec4(0, 0, 0, sphere_radius) };
 	for (int sign = -1; sign <= 1; sign += 2)
 		for (int ax = 0; ax < 3; ++ax)
-			spheres.push_back(vec4(0, 0, 0, 3)),
+			spheres.push_back(vec4(0, 0, 0, sphere_radius)),
 				spheres.back()[ax] = sign * sphere_dist;
-	GLBuffer input_vertices(cube);
+	GLBuffer input_vertices(beams);
 	GLBuffer input_normals(normals);
-	GLBuffer input_offsets(cube_offsets);
 	GLBuffer input_fullscreen(fullscreen_tris);
 	GLBuffer input_square(square);
 	GLBuffer input_spheres(spheres);
@@ -292,9 +307,8 @@ int main(int argc, char **argv) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	}
-	// glBindTexture(GL_TEXTURE_2D, colour_textures[NORMAL]);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	// Didn't end up needing this, could be a regular depth buffer.
 	GLuint depth_texture;
@@ -337,14 +351,29 @@ int main(int argc, char **argv) {
 	mat4 transform_matrix
 		= lookAt(vec3(10, 10, 10), vec3(0, 0, 0), vec3(0, 1, 0));
 
-	float dither_map[25] = { 0 };
-	for (int i = 0; i < LENGTH(dither_map); ++i) {
-		int j = 0, count = 0, pick = random() % (LENGTH(dither_map) - i);
+	std::vector<float> dither_map(screen.x * screen.y, 0);
+	for (int i = 0; i < dither_map.size(); ++i) {
+		int j = 0, count = 0, pick = random() % (dither_map.size() - i);
 		for (; count < pick; ++j)
 			if (dither_map[j] == 0)
 				++count;
 		dither_map[j] = (i + 1.) / 25;
 	}
+
+	GLuint dither_texture;
+	glGenTextures(1, &dither_texture);
+	glBindTexture(GL_TEXTURE_2D, dither_texture);
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_R32F,
+		screen.x,
+		screen.y,
+		0,
+		GL_RED,
+		GL_FLOAT,
+		&dither_map[0]
+	);
 
 	do {
 		glBindFramebuffer(GL_FRAMEBUFFER, frame_buffers[NORMAL]);
@@ -362,11 +391,11 @@ int main(int argc, char **argv) {
 
 			GLAttribArrayEnable enable_zero = input_vertices.bind(0);
 			GLAttribArrayEnable enable_one = input_normals.bind(1);
-			GLAttribArrayEnable enable_two = input_offsets.bind(2);
+			GLAttribArrayEnable enable_two = input_spheres.bind(2);
 			enable_two.set_divisor(1);
 
 			glDrawArraysInstanced(
-				GL_TRIANGLES, 0, cube.size(), cube_offsets.size()
+				GL_TRIANGLES, 0, beams.size(), spheres.size()
 			);
 		}
 
@@ -398,9 +427,13 @@ int main(int argc, char **argv) {
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, colour_textures[NORMAL]);
 			glUniform1i(colour_normals, 0);
-			vec4 light = normalize(transform_matrix * vec4(1, 0, 0, 0));
+
+			vec4 light = normalize(transform_matrix * vec4(1, 1, 1, 0));
 			glUniform4fv(colour_light_direction, 1, &light[0]);
-			glUniform1fv(colour_dither_map, LENGTH(dither_map), dither_map);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, dither_texture);
+			glUniform1i(colour_dither_map, 0);
 
 			GLAttribArrayEnable _zero = input_fullscreen.bind(0);
 
@@ -423,9 +456,7 @@ int main(int argc, char **argv) {
 #define AREF(X, Y) buf[(Y) * screen.x + X]
 			for (int y = 0; y < screen.y / 2; ++y)
 				std::swap_ranges(
-					&AREF(0, y),
-					&AREF(screen.x - 1, y),
-					&AREF(0, screen.y - y - 1)
+					&AREF(0, y), &AREF(screen.x, y), &AREF(0, screen.y - y - 1)
 				);
 #undef AREF
 
@@ -464,6 +495,7 @@ int main(int argc, char **argv) {
 	glDeleteFramebuffers(LENGTH(frame_buffers), frame_buffers);
 	glDeleteTextures(LENGTH(colour_textures), colour_textures);
 	glDeleteTextures(1, &depth_texture);
+	glDeleteTextures(1, &dither_texture);
 
 	glfwTerminate();
 }

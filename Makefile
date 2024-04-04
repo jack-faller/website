@@ -1,15 +1,16 @@
 .PHONY: all clean send image tiling/clean
 
-all: servdir nginx-token image
-send: all
-	rsync --recursive --compress static/ generated/ "$$(cat server-url.txt):/website/" --delete-after
+all: servdir nginx-token
+send: servdir
+	rsync --recursive --compress servdir/ "$$(cat server-url.txt):/website/" --delete-after
 clean: tiling/clean
 	rm -rf servdir nginx-token generated || true
 image: tiling/output.png
-servdir: generated $(shell find static) server-url.txt
+servdir: generated image $(shell find static) server-url.txt
 	rm -rf servdir || true
 	cp -rT static servdir
 	cp -rT generated/ servdir
+	cp tiling/output.png servdir/images/tiling_pattern.png
 generated: $(shell find pages posts thoughts) doclisp.scm make.scm
 	guile doclisp.scm
 nginx-token: nginx.conf server-url.txt

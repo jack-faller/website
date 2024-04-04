@@ -20,8 +20,7 @@ void main() {
   float xy_len = length(xy);
   if (xy_len > radius)
 	discard;
-  vec4 sphere_pos = (centre + vec4(xy, +sqrt(radius * radius - xy_len * xy_len), 0.0));
-  colour = normalize(vec4((sphere_pos - centre).xyz, 0));
-  sphere_pos = perspective * sphere_pos;
-  gl_FragDepth = frag_depth(sphere_pos);
+  vec4 sphere_pos = vec4(xy, sqrt(radius * radius - xy_len * xy_len), 0.0);
+  colour = normalize(sphere_pos);
+  gl_FragDepth = frag_depth(perspective * (sphere_pos + centre));
 }

@@ -19,7 +19,6 @@ using namespace glm;
 #define SHADER_DIR "tiling/"
 
 option options[] = {
-	{ "size", required_argument, 0, 's' },
 	{ "output", required_argument, 0, 'o' },
 	{ "copies", required_argument, 0, 'c' },
 };
@@ -165,14 +164,11 @@ template <int n> struct GLBuffer {
 enum NormalOrImage { NORMAL, IMAGE };
 int main(int argc, char **argv) {
 	int copies = 1;
-	vec<2, int> screen = { 108, 74 };
+	vec<2, int> screen(108, 0);
+  screen.y = screen.x * tan(radians(30.0));
 	char *output = nullptr;
 	for (int val; -1 != (val = getopt_long(argc, argv, "", options, nullptr));)
 		switch (val) {
-		case 's':
-			if (!sscanf(optarg, "%dx%d", &screen.x, &screen.y))
-				eprintf("Incorrect size specification\n");
-			break;
 		case 'o': output = optarg; break;
 		case 'c':
 			if (!sscanf(optarg, "%d", &copies))
@@ -223,6 +219,7 @@ int main(int argc, char **argv) {
 
 	vec2 view(0, 5);
 	view.x = view.y * screen.x / screen.y;
+  float sphere_dist = view.x / sin(radians(45.0));
 
 	std::vector<vec3> cube {
 		vec3(0, 1, 1), vec3(0, 0, 1), vec3(1, 0, 1),
@@ -245,7 +242,7 @@ int main(int argc, char **argv) {
 		vec3(-1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0),
 	};
 	std::vector<vec3> cube_offsets { vec3(0, 0, 0) };
-	for (int i = 0; i < 9; ++i)
+	for (int i = 0; i < sphere_dist; ++i)
 		for (int sign = -1; sign <= 1; sign += 2)
 			for (int ax = 0; ax < 3; ++ax)
 				cube_offsets.push_back({}), cube_offsets.back()[ax] = sign * i;
@@ -258,7 +255,7 @@ int main(int argc, char **argv) {
 	for (int sign = -1; sign <= 1; sign += 2)
 		for (int ax = 0; ax < 3; ++ax)
 			spheres.push_back(vec4(0, 0, 0, 3)),
-				spheres.back()[ax] = sign * view.x * sqrt(2);
+				spheres.back()[ax] = sign * sphere_dist;
 	GLBuffer input_vertices(cube);
 	GLBuffer input_normals(normals);
 	GLBuffer input_offsets(cube_offsets);
@@ -295,9 +292,9 @@ int main(int argc, char **argv) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	}
-	glBindTexture(GL_TEXTURE_2D, colour_textures[NORMAL]);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	// glBindTexture(GL_TEXTURE_2D, colour_textures[NORMAL]);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	// Didn't end up needing this, could be a regular depth buffer.
 	GLuint depth_texture;
@@ -414,7 +411,7 @@ int main(int argc, char **argv) {
 			FILE *f = fopen(output, "w");
 			output = nullptr;
 
-      // PPM header.
+			// PPM header.
 			fprintf(f, "P6\n%d %d\n255\n", screen.x, screen.y);
 
 			uint8_t(*buf)[3] = new uint8_t[screen.x * screen.y][3];

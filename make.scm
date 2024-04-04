@@ -10,7 +10,7 @@
   (define (link . body)
 	{{a {class headinglink} #(link-href "heading" id)}
 	 #@body})
-  {{div {id heading-#id} }
+  {{div {id heading-#id}}
    {#(string-append "h" (number->string depth))
 	#@(let loop ((result '()) (list text) (link? #t))
 		(if (null? list)
@@ -51,23 +51,31 @@
    note-ref
    format-notes))
 
-(define (template blogname wants-back-arrow? date . body)
+(define* (template root body #:key (blog-name #f) (date #f) (wants-back-arrow? #t))
   {just
    <!DOCTYPE html>
    {head {title Jack Faller}
-		 {{link {href /style.css} {rel stylesheet} {type text/css}}}
-		 #@(if blogname
-			   {{script const blogname =
-						#(string-append "\"" blogname "\"")}
-				{{script {src comment-script.js} defer}}}
-			   '())}
+		 {{link {href {join #root /style.css}} {rel stylesheet} {type text/css}}}
+		 #(and blog-name
+			   {{script const blog-name =
+						#(string-append "\"" blog-name "\"")}
+				{{script {src comment-script.js} defer}}})}
    {body
 	{main
 	 {header
 	  #(and wants-back-arrow?
-			{{a {href /} {title home} {class backarrow}} &larr\;})
-	  #(and date {{div {class date}} #date})}
-	 #@body}}})
+			{{a {href {join #root /index.html}} {title home} {class backarrow}} &larr\;})
+	  #(cond
+		(date {{div {class date}} #(date-format date)})
+		(blog-name {{div {class date}} DRAFT})
+		(else #f))}
+	 #@body
+	 {{footer {id copy-notice}}
+	  &copy\;
+	  {join
+	   #(if date {join #(number->string (date-year date)) &ndash\;} "")
+	   #(number->string (date-year (current-date)))}
+	  Jack Faller}}}})
 ;; Remember to put .codequote on inline code blocks to avoid word breaking.
 (define (code-block file-name)
   {pre {{code {class block}}
@@ -89,7 +97,7 @@
    (date->string date " ~B ~Y")))
 
 (define-record-type <post>
-  (make-post name type dir title time date written-date description body)
+  (make-post name type dir title time date description body)
   post?
   (name         post-name         post-name!)
   (type         post-type         post-type!)
@@ -97,23 +105,18 @@
   (time         post-time         post-time!)
   (title        post-title        post-title!)
   (date         post-date         post-date!)
-  (written-date post-written-date post-written-date!)
   (description  post-description  post-description!)
   (body         post-body         post-body!))
-(define (post-link post absolute?)
-  (define relative (string-append "/" (post-dir post) "/" (post-name post)))
-  (if absolute?
-	  (string-append "https://jackfaller.xyz" relative)
-	  relative))
+(define (post-link root post)
+  (string-append root "/" (post-dir post) "/" (post-name post) ".html"))
 
 (define (post title date description . body)
   (let* ((date (and date (read-date-string date)))
-		 (sort (and date (date->time-tai date)))
-		 (written-date (if date (date-format date) "DRAFT")))
-	(make-post #f #f #f title sort (or date 'draft) written-date description body)))
+		 (sort (and date (date->time-tai date))))
+	(make-post #f #f #f title sort date description body)))
 
-(define (page . body) (apply template #f #t #f body))
-(define (home-page . body) (apply template #f #f #f body))
+(define (page root . body) (template root body))
+(define (home-page . body) (template "." body #:wants-back-arrow? #f))
 
 (system* "rm" "-rf" (thisdir "generated"))
 (define (output-file name)
@@ -142,9 +145,9 @@
 (define note #f)
 (define note-ref #f)
 (define (post-time->? a b) (time>? (post-time a) (post-time b)))
-(define (post->li include-type?)
+(define (post->li root include-type?)
   (lambda (post)
-	{li {{a {href #(post-link post #f)}}
+	{li {{a {href #(post-link root post)}}
 		 #(date->string (post-date post) "~y/~m/~d")
 		 #(and include-type? {just &ndash\; #(post-type post)})
 		 &ndash\;
@@ -153,7 +156,7 @@
 (define (write-posts-to-file file-name title include-type? posts)
   (write-sexp-to-html-file
    file-name
-   (page {h1 #title} {ul #@(map (post->li include-type?) posts)})))
+   (page "." {h1 #title} {ul #@(map (post->li "." include-type?) posts)})))
 (define (post-like-dir dirname-plural dirname-singular post-type)
  (define posts
    (filter-map
@@ -176,11 +179,13 @@
   (lambda (post)
 	(write-sexp-to-html-file
 	 (string-append dirname-singular "/" (post-name post) ".html")
-	 (apply template (post-name post) #t (post-written-date post)
-			(cons*
-			 {h1 #(post-title post)}
-			 {p #(post-description post)}
-			 (post-body post)))))
+	 (template
+	  ".."
+	  (cons*
+	   {h1 #(post-title post)}
+	   {p #(post-description post)}
+	   (post-body post))
+	  #:blog-name (post-name post) #:date (post-date post))))
   posts)
  public-posts)
 
@@ -208,7 +213,7 @@
 		   {title
 			#(and include-type? {just #(post-type post) &ndash\;})
 		  	#(post-title post)}
-		   {link #(post-link post #t)}
+		   {link #(post-link "https://jackfaller.xyz" post)}
 		   {pubDate #(rfc-822 (post-date post))}
 		   {description
 			#(let ((CD-begin "<![CDATA[") (CD-end "]]>")

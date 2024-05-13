@@ -1,7 +1,35 @@
-@font-face { font-family: Crimson; src: url('Crimson-Roman.otf');       font-weight: normal; font-style: normal; } 
-@font-face { font-family: Crimson; src: url('Crimson-Bold.otf');        font-weight: bold;   font-style: normal; } 
-@font-face { font-family: Crimson; src: url('Crimson-Italic.otf');      font-weight: normal; font-style: italic; }
-@font-face { font-family: Crimson; src: url('Crimson-Bold Italic.otf'); font-weight: bold;   font-style: italic; }
+/* TODO: Change Cochineal to Cochineal. */
+@font-face {
+	font-family: Cochineal;
+	src: url('Cochineal-Roman.woff2') format('woff2'),
+		 url('Cochineal-Roman.woff') format('woff'),
+		 url('Cochineal-Roman.otf') format('truetype');
+	font-weight: normal; font-style: normal;
+}
+@font-face {
+	font-family: Cochineal;
+	src: url('Cochineal-Bold.woff2') format('woff2'),
+		 url('Cochineal-Bold.woff') format('woff'),
+		 url('Cochineal-Bold.otf') format('truetype');
+	font-weight: bold;
+	font-style: normal;
+}
+@font-face {
+	font-family: Cochineal;
+	src: url('Cochineal-Italic.woff2') format('woff2'),
+		 url('Cochineal-Italic.woff') format('woff'),
+		 url('Cochineal-Italic.otf') format('truetype');
+	font-weight: normal;
+	font-style: italic;
+}
+@font-face {
+	font-family: Cochineal;
+	src: url('Cochineal-Bold Italic.woff2') format('woff2'),
+		 url('Cochineal-Bold Italic.woff') format('woff'),
+		 url('Cochineal-Bold Italic.otf') format('truetype');
+	font-weight: bold;
+	font-style: italic;
+}
 
 :root {
 	--text-width: 925px;
@@ -11,7 +39,7 @@
 }
 
 body {
-	font-family: Crimson, serif;
+	font-family: Cochineal, serif;
 	font-size: 23px;
 	margin: 0px;
 	background-image: url('images/tiling_patern.jpg');

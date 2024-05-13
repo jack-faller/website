@@ -73,7 +73,9 @@
 	 {{footer {id copy-notice}}
 	  &copy\;
 	  {join
-	   #(if date {join #(number->string (date-year date)) &ndash\;} "")
+	   #(if (and date (not (= (date-year date) (date-year (current-date)))))
+			{join #(number->string (date-year date)) &ndash\;}
+			"")
 	   #(number->string (date-year (current-date)))}
 	  Jack Faller}}}})
 ;; Remember to put .codequote on inline code blocks to avoid word breaking.

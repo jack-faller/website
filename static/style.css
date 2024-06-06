@@ -30,10 +30,6 @@
 	font-style: italic;
 }
 
-p {
-	text-align: justify;
-}
-
 :root {
 	--content-width: 750px;
 	--content-margin: 30px;

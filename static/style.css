@@ -45,7 +45,8 @@ body {
 	font-family: Cochineal, serif;
 	font-size: 23px;
 	margin: 0px;
-	background-image: url('images/tiling_patern.jpg');
+	background-image: url('images/tiling_pattern.png');
+	background-attachment: fixed;
 
 	quotes: "\201C" "\201D";
 

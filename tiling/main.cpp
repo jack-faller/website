@@ -2,17 +2,17 @@
 #include <glad/gl.h>
 
 #include <GLFW/glfw3.h>
+#include <cstring>
 #include <fstream>
 #include <getopt.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 #include <iostream>
 #include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <sys/types.h>
-#include <utility>
 #include <vector>
 using namespace glm;
 
@@ -36,7 +36,7 @@ std::string read_file(const char *path) {
 		stream.close();
 	} else {
 		eprintf("Couldn't read file %s.\n", path);
-		return 0;
+		exit(0);
 	}
 	return out;
 }
@@ -230,7 +230,7 @@ int main(int argc, char **argv) {
 	view.x = view.y * screen.x / screen.y;
 	float sphere_dist = view.x / sin(radians(45.0));
 
-	float beam_width = 1.75;
+	float beam_width = 2;
 	float sphere_radius = 4;
 
 	float beam_length = sphere_dist / 2;
@@ -428,7 +428,7 @@ int main(int argc, char **argv) {
 			glBindTexture(GL_TEXTURE_2D, colour_textures[NORMAL]);
 			glUniform1i(colour_normals, 0);
 
-			vec4 light = normalize(transform_matrix * vec4(1, 1, 1, 0));
+			vec4 light = normalize(transform_matrix * vec4(0.7, 1, 1, 0));
 			glUniform4fv(colour_light_direction, 1, &light[0]);
 
 			glActiveTexture(GL_TEXTURE1);
@@ -453,11 +453,70 @@ int main(int argc, char **argv) {
 				0, 0, screen.x, screen.y, GL_RGB, GL_UNSIGNED_BYTE, buf
 			);
 			// Flip image vertically by swapping rows of pixels.
-#define AREF(X, Y) buf[(Y) * screen.x + X]
+#define AREF(X, Y) buf[(Y) * screen.x + (X)]
 			for (int y = 0; y < screen.y / 2; ++y)
 				std::swap_ranges(
 					&AREF(0, y), &AREF(screen.x, y), &AREF(0, screen.y - y - 1)
 				);
+				// Sierra dithering.
+#define DITHER1 0, 0, 0, 5, 3,
+#define DITHER2 2, 4, 5, 4, 2,
+#define DITHER3 0, 2, 3, 2, 0,
+			const int dither[3][5] = { { DITHER1 }, { DITHER2 }, { DITHER3 } };
+#define DITHER(VALUE, X, Y) ((dither[Y][X] * (VALUE)) / 32)
+#define DITHER_X 5
+#define DITHER_X_MID 2
+#define DITHER_Y 3
+#define DITHER_Y_MID 0
+			const int threshold = 128;
+			for (int x = 0; x < screen.x; ++x)
+				for (int y = 0; y < screen.y; ++y)
+					memset(&AREF(x, y), AREF(x, y)[0] * 0.5, 3);
+			for (int x = 0; x < screen.x; ++x)
+				for (int y = 0; y < screen.y; ++y) {
+					int val = AREF(x, y)[0];
+					int new_val = val < threshold ? 0 : 255;
+					memset(&AREF(x, y), new_val, 3);
+					int error = new_val - val;
+					for (int dither_x = 0; dither_x < DITHER_X; ++dither_x) {
+						int target_x = x - DITHER_X_MID + dither_x;
+						if (target_x < 0 || target_x >= screen.x)
+							continue;
+						for (int dither_y = 0; dither_y < DITHER_Y;
+						     ++dither_y) {
+							int target_y = y - DITHER_Y_MID + dither_y;
+							if (target_y < 0 || target_y >= screen.y)
+								continue;
+							int target_val = AREF(target_x, target_y)[0];
+							if (target_x <= x && target_y <= y
+							    && DITHER(-error, dither_x, dither_y) > 0)
+								eprintf(
+									"error (%d, %d) (%d, %d) (%d, %d) %d\n",
+									dither_x,
+									dither_y,
+									target_x,
+									target_y,
+									x,
+									y,
+									DITHER(32, dither_x, dither_y)
+								);
+							memset(
+								&AREF(target_x, target_y),
+								clamp(
+									target_val
+										+ DITHER(-error, dither_x, dither_y),
+									0,
+									255
+								),
+								3
+							);
+						}
+					}
+				}
+			// Dim the entire image because pure white is too distracting.
+			for (int x = 0; x < screen.x; ++x)
+				for (int y = 0; y < screen.y; ++y)
+					memset(&AREF(x, y), AREF(x, y)[0] * 0.5, 3);
 #undef AREF
 
 			fwrite(buf, sizeof(*buf), screen.x * screen.y, f);

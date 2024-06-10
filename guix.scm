@@ -23,7 +23,7 @@
 					   (replace 'install
 						 (lambda* (#:key outputs #:allow-other-keys)
 						   (copy-recursively "servdir" (assoc-ref outputs "out")))))))))
-   (native-inputs (map specification->package '("glfw" "glm" "glad" "pkg-config" "imagemagick")))
+   (native-inputs (map specification->package '("glfw" "glm" "glad" "pkg-config" "imagemagick" "gcc-toolchain@13")))
    (inputs (map specification->package '()))
    (home-page "https://jackfaller.xyz")
    (synopsis "My website")

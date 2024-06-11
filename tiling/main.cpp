@@ -531,7 +531,7 @@ int main(int argc, char **argv) {
 				}
 			}
 			// Dim the entire image because pure white is too distracting.
-			grey.for_each([](uint8_t &v) { v = v * 0.5; });
+			grey.for_each([](uint8_t &v) { v = v * 0.3; });
 			for (int y = 0; y < image.height; ++y)
 				for (int x = 0; x < image.width; ++x)
 					memset(

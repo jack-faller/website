@@ -19,7 +19,9 @@ nginx-token: nginx.conf server-url.txt
 	ssh $$(cat server-url.txt) nginx -s reload
 	echo "up-to-date" > nginx-token
 
-flags := $(shell pkg-config --libs --cflags gl glfw3 glm)
+flags := $(shell pkg-config --libs --cflags gl)
+flags += $(shell pkg-config --libs --cflags glfw3)
+flags += $(shell pkg-config --libs --cflags glm)
 glad_dir = tiling/glad
 glad_flags = -I$(glad_dir)/include -ldl
 $(glad_dir): tiling/glad-flags.txt
@@ -31,6 +33,6 @@ tiling/main: tiling/main.cpp $(glad_dir)/src/gl.c
 tiling/output.ppm: tiling/main tiling/*.vert tiling/*.frag
 	$< --output $@
 tiling/output.png: tiling/output.ppm
-	convert $< $@
+	magick $< $@
 tiling/clean:
 	rm -rf $(glad_dir) tiling/main tiling/output.ppm tiling/output.png

@@ -29,7 +29,7 @@ $(glad_dir): tiling/glad-flags.txt
 	glad $(shell cat $<) --out-path $@
 $(glad_dir)/src/gl.c: $(glad_dir)
 tiling/main: tiling/main.cpp $(glad_dir)/src/gl.c
-	g++ -Wall $(glad_flags) $(flags) $^ -o $@
+	g++ -ggdb -Wall $(glad_flags) $(flags) $^ -o $@
 tiling/output.ppm: tiling/main tiling/*.vert tiling/*.frag
 	$< --output $@
 tiling/output.png: tiling/output.ppm

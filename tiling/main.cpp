@@ -57,6 +57,19 @@ template <typename T> struct Image {
 		for (int y = 0; y < height / 2; ++y)
 			std::swap_ranges(&at(0, y), &at(width, y), &at(0, height - y - 1));
 	}
+	// Copy the pixels from the rectangle ((0, 0), (x, y)) to tile the entire
+	// image.
+	void tile(int x, int y) {
+		for (int end_x; x < width; x = end_x) {
+			end_x = std::min(x * 2, width);
+			for (int y = 0; y < height; ++y)
+				std::copy(&at(0, y), &at(end_x - x, y), &at(x, y));
+		}
+		for (int start_y = y; y < height; ++y) {
+			int target = y - start_y;
+			std::copy(&at(0, target), &at(width, target), &at(0, y));
+		}
+	}
 };
 
 struct Dither {
@@ -71,7 +84,7 @@ struct Dither {
 	template <typename T> static T apply(T val, int x, int y) {
 		return val * values[y][x] / 32;
 	}
-	static const int threshold = 128;
+	static int threshold(int value) { return value < 128 ? 0 : 255; }
 };
 
 std::string read_file(const char *path) {
@@ -469,32 +482,42 @@ int main(int argc, char **argv) {
 			fprintf(f, "P6\n%d %d\n255\n", screen.x, screen.y);
 
 			Image<uint8_t[3]> image(screen.x, screen.y);
-			Image<uint8_t> grey(screen.x, screen.y);
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glReadPixels(
 				0, 0, screen.x, screen.y, GL_RGB, GL_UNSIGNED_BYTE, image.buffer
 			);
+			// Make the grey image slightly larger than needed because dithering
+			// causes small errors at the edges of the image which become
+			// noticeable during tiling.
+			const int overdraw = 50;
+			Image<uint8_t> grey(
+				image.width + overdraw, image.height + overdraw
+			);
 			image.for_each(grey, [](uint8_t(&a)[3], uint8_t &b) { b = a[0]; });
+			grey.tile(grey.width - overdraw, grey.height - overdraw);
 			grey.flip();
 			// Dithering.
-			// Choose 0.467 because it makes the edges of the image tile without
-			// causing a clear border.
-			grey.for_each([](uint8_t &v) { v = v * 0.467; });
+			grey.for_each([](uint8_t &v) {
+				// Raise values to a power to extenuate shadows.
+				const double gamma = 1.51, gain = 0.56;
+				double f = v;
+				v = pow((double)f / 255, gamma) * gain * 255;
+			});
 			for (int y = 0; y < grey.height; ++y) {
 				for (int x = 0; x < grey.width; ++x) {
 					int val = grey.at(x, y);
-					int new_val = val < Dither::threshold ? 0 : 255;
+					int new_val = Dither::threshold(val);
 					grey.at(x, y) = new_val;
 					int error = val - new_val;
 					for (int dither_y = 0; dither_y < Dither::height;
 					     ++dither_y) {
 						int target_y = y - Dither::y_mid + dither_y;
-						if (target_y < 0 || target_y >= screen.y)
+						if (target_y < 0 || target_y >= grey.height)
 							continue;
 						for (int dither_x = 0; dither_x < Dither::width;
 						     ++dither_x) {
 							int target_x = x - Dither::x_mid + dither_x;
-							if (target_x < 0 || target_x >= screen.x)
+							if (target_x < 0 || target_x >= grey.width)
 								continue;
 							int target_val = grey.at(target_x, target_y);
 							grey.at(target_x, target_y) = clamp(
@@ -509,9 +532,13 @@ int main(int argc, char **argv) {
 			}
 			// Dim the entire image because pure white is too distracting.
 			grey.for_each([](uint8_t &v) { v = v * 0.5; });
-			image.for_each(grey, [](uint8_t(&a)[3], uint8_t &b) {
-				memset(&a, b, 3);
-			});
+			for (int y = 0; y < image.height; ++y)
+				for (int x = 0; x < image.width; ++x)
+					memset(
+						&image.at(x, y),
+						grey.at(x + overdraw / 2, y + overdraw / 2),
+						3
+					);
 			fwrite(image.buffer, sizeof(*image.buffer), screen.x * screen.y, f);
 			fclose(f);
 			break;

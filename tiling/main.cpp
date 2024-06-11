@@ -6,7 +6,7 @@
 #include <fstream>
 #include <getopt.h>
 #include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <sstream>
 #include <stdio.h>
@@ -25,6 +25,54 @@ option options[] = {
 
 #define eprintf(...) fprintf(stderr, __VA_ARGS__)
 #define LENGTH(ARRAY) (sizeof(ARRAY) / sizeof(ARRAY[0]))
+
+int positive_mod(int numerator, int denominator) {
+	int out = numerator % denominator;
+	return out >= 0 ? out : out + denominator;
+}
+
+template <typename T> struct Image {
+	int width, height;
+	T *buffer;
+	Image(int width, int height) : width(width), height(height) {
+		buffer = new T[width * height];
+	}
+	~Image() { delete[] buffer; }
+	T &at(int x, int y) { return buffer[width * y + x]; }
+	T &wrapped_at(int x, int y) {
+		return buffer[width * positive_mod(y, height) + positive_mod(x, width)];
+	}
+	template <typename F> void for_each(F f) {
+		for (int y = 0; y < height; ++y)
+			for (int x = 0; x < width; ++x)
+				f(at(x, y));
+	}
+	template <typename F, typename U> void for_each(Image<U> &other, F f) {
+		for (int y = 0; y < height; ++y)
+			for (int x = 0; x < width; ++x)
+				f(at(x, y), other.at(x, y));
+	}
+	// Flip image vertically by swapping rows of pixels.
+	void flip() {
+		for (int y = 0; y < height / 2; ++y)
+			std::swap_ranges(&at(0, y), &at(width, y), &at(0, height - y - 1));
+	}
+};
+
+struct Dither {
+// Sierra dither kernel
+#define DITHER1 0, 0, 0, 5, 3,
+#define DITHER2 2, 4, 5, 4, 2,
+#define DITHER3 0, 2, 3, 2, 0,
+	constexpr static const int values[3][5]
+		= { { DITHER1 }, { DITHER2 }, { DITHER3 } };
+	static const int x_mid = 2, y_mid = 0;
+	static const int width = LENGTH(values[0]), height = LENGTH(values);
+	template <typename T> static T apply(T val, int x, int y) {
+		return val * values[y][x] / 32;
+	}
+	static const int threshold = 128;
+};
 
 std::string read_file(const char *path) {
 	std::string out;
@@ -170,7 +218,7 @@ void push_rotate(
 		dst.push_back(matrix * vec4(i, 0));
 }
 
-enum Index { NORMAL, IMAGE, DITHER };
+enum Index { NORMAL, IMAGE };
 int main(int argc, char **argv) {
 	int copies = 1;
 	vec<2, int> screen(108, 0);
@@ -287,7 +335,6 @@ int main(int argc, char **argv) {
 	GLProgram colour_program("colour");
 	GLuint colour_normals = colour_program.uniform("normals");
 	GLuint colour_light_direction = colour_program.uniform("light_direction");
-	GLuint colour_dither_map = colour_program.uniform("dither_map");
 
 	GLuint colour_textures[2];
 	glGenTextures(2, colour_textures);
@@ -351,30 +398,6 @@ int main(int argc, char **argv) {
 	mat4 transform_matrix
 		= lookAt(vec3(10, 10, 10), vec3(0, 0, 0), vec3(0, 1, 0));
 
-	std::vector<float> dither_map(screen.x * screen.y, 0);
-	for (int i = 0; i < dither_map.size(); ++i) {
-		int j = 0, count = 0, pick = random() % (dither_map.size() - i);
-		for (; count < pick; ++j)
-			if (dither_map[j] == 0)
-				++count;
-		dither_map[j] = (i + 1.) / 25;
-	}
-
-	GLuint dither_texture;
-	glGenTextures(1, &dither_texture);
-	glBindTexture(GL_TEXTURE_2D, dither_texture);
-	glTexImage2D(
-		GL_TEXTURE_2D,
-		0,
-		GL_R32F,
-		screen.x,
-		screen.y,
-		0,
-		GL_RED,
-		GL_FLOAT,
-		&dither_map[0]
-	);
-
 	do {
 		glBindFramebuffer(GL_FRAMEBUFFER, frame_buffers[NORMAL]);
 		glViewport(0, 0, screen.x, screen.y);
@@ -432,8 +455,6 @@ int main(int argc, char **argv) {
 			glUniform4fv(colour_light_direction, 1, &light[0]);
 
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, dither_texture);
-			glUniform1i(colour_dither_map, 0);
 
 			GLAttribArrayEnable _zero = input_fullscreen.bind(0);
 
@@ -447,81 +468,52 @@ int main(int argc, char **argv) {
 			// PPM header.
 			fprintf(f, "P6\n%d %d\n255\n", screen.x, screen.y);
 
-			uint8_t(*buf)[3] = new uint8_t[screen.x * screen.y][3];
+			Image<uint8_t[3]> image(screen.x, screen.y);
+			Image<uint8_t> grey(screen.x, screen.y);
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
 			glReadPixels(
-				0, 0, screen.x, screen.y, GL_RGB, GL_UNSIGNED_BYTE, buf
+				0, 0, screen.x, screen.y, GL_RGB, GL_UNSIGNED_BYTE, image.buffer
 			);
-			// Flip image vertically by swapping rows of pixels.
-#define AREF(X, Y) buf[(Y) * screen.x + (X)]
-			for (int y = 0; y < screen.y / 2; ++y)
-				std::swap_ranges(
-					&AREF(0, y), &AREF(screen.x, y), &AREF(0, screen.y - y - 1)
-				);
-				// Sierra dithering.
-#define DITHER1 0, 0, 0, 5, 3,
-#define DITHER2 2, 4, 5, 4, 2,
-#define DITHER3 0, 2, 3, 2, 0,
-			const int dither[3][5] = { { DITHER1 }, { DITHER2 }, { DITHER3 } };
-#define DITHER(VALUE, X, Y) ((dither[Y][X] * (VALUE)) / 32)
-#define DITHER_X 5
-#define DITHER_X_MID 2
-#define DITHER_Y 3
-#define DITHER_Y_MID 0
-			const int threshold = 128;
-			for (int x = 0; x < screen.x; ++x)
-				for (int y = 0; y < screen.y; ++y)
-					memset(&AREF(x, y), AREF(x, y)[0] * 0.5, 3);
-			for (int x = 0; x < screen.x; ++x)
-				for (int y = 0; y < screen.y; ++y) {
-					int val = AREF(x, y)[0];
-					int new_val = val < threshold ? 0 : 255;
-					memset(&AREF(x, y), new_val, 3);
-					int error = new_val - val;
-					for (int dither_x = 0; dither_x < DITHER_X; ++dither_x) {
-						int target_x = x - DITHER_X_MID + dither_x;
-						if (target_x < 0 || target_x >= screen.x)
+			image.for_each(grey, [](uint8_t(&a)[3], uint8_t &b) { b = a[0]; });
+			grey.flip();
+			// Dithering.
+			// Choose 0.467 because it makes the edges of the image tile without
+			// causing a clear border.
+			grey.for_each([](uint8_t &v) { v = v * 0.467; });
+			for (int y = 0; y < grey.height; ++y) {
+				for (int x = 0; x < grey.width; ++x) {
+					int val = grey.at(x, y);
+					int new_val = val < Dither::threshold ? 0 : 255;
+					grey.at(x, y) = new_val;
+					int error = val - new_val;
+					for (int dither_y = 0; dither_y < Dither::height;
+					     ++dither_y) {
+						int target_y = y - Dither::y_mid + dither_y;
+						if (target_y < 0 || target_y >= screen.y)
 							continue;
-						for (int dither_y = 0; dither_y < DITHER_Y;
-						     ++dither_y) {
-							int target_y = y - DITHER_Y_MID + dither_y;
-							if (target_y < 0 || target_y >= screen.y)
+						for (int dither_x = 0; dither_x < Dither::width;
+						     ++dither_x) {
+							int target_x = x - Dither::x_mid + dither_x;
+							if (target_x < 0 || target_x >= screen.x)
 								continue;
-							int target_val = AREF(target_x, target_y)[0];
-							if (target_x <= x && target_y <= y
-							    && DITHER(-error, dither_x, dither_y) > 0)
-								eprintf(
-									"error (%d, %d) (%d, %d) (%d, %d) %d\n",
-									dither_x,
-									dither_y,
-									target_x,
-									target_y,
-									x,
-									y,
-									DITHER(32, dither_x, dither_y)
-								);
-							memset(
-								&AREF(target_x, target_y),
-								clamp(
-									target_val
-										+ DITHER(-error, dither_x, dither_y),
-									0,
-									255
-								),
-								3
+							int target_val = grey.at(target_x, target_y);
+							grey.at(target_x, target_y) = clamp(
+								target_val
+									+ Dither::apply(error, dither_x, dither_y),
+								0,
+								255
 							);
 						}
 					}
 				}
+			}
 			// Dim the entire image because pure white is too distracting.
-			for (int x = 0; x < screen.x; ++x)
-				for (int y = 0; y < screen.y; ++y)
-					memset(&AREF(x, y), AREF(x, y)[0] * 0.5, 3);
-#undef AREF
-
-			fwrite(buf, sizeof(*buf), screen.x * screen.y, f);
+			grey.for_each([](uint8_t &v) { v = v * 0.5; });
+			image.for_each(grey, [](uint8_t(&a)[3], uint8_t &b) {
+				memset(&a, b, 3);
+			});
+			fwrite(image.buffer, sizeof(*image.buffer), screen.x * screen.y, f);
 			fclose(f);
-			delete[] buf;
 			break;
 		}
 
@@ -554,7 +546,6 @@ int main(int argc, char **argv) {
 	glDeleteFramebuffers(LENGTH(frame_buffers), frame_buffers);
 	glDeleteTextures(LENGTH(colour_textures), colour_textures);
 	glDeleteTextures(1, &depth_texture);
-	glDeleteTextures(1, &dither_texture);
 
 	glfwTerminate();
 }

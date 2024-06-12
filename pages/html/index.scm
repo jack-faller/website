@@ -7,14 +7,13 @@
   I've been doing it for some years now and I like to think I'm rather good at it.
   This is the place I will be collating and writing about the things I've done (programming or otherwise), and sharing my general musings on life.
   I have been cursed with a great many ideas and I hope they may be of some use to you.}
- (link-heading 2 "all-stuff" "All Stuff")
  {ul
-  {li {b Thoughts}: {{a {href /thoughts.html}} see all}, {{a {href /thoughts.rss}} RSS}}
-  {li {b Blog}: {{a {href /posts.html}} see all}, {{a {href /blog.rss}} RSS}}
+  {li {b Blog}: {{a {href \#heading-recent-blog}} recent}, {{a {href ./posts.html}} see all}, {{a {href ./blog.rss}} RSS}}
+  {li {b Thoughts}: {{a {href \#heading-recent-thoughts}} recent}, {{a {href ./thoughts.html}} see all}, {{a {href ./thoughts.rss}} RSS}}
   {li {b Github}: {{a {href https://github.com/jack-faller}} github.com/jack-faller}}
   {li {b Email}: {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
  (link-heading 2 "recent-stuff"
-			   "Recent Stuff"
+			   "Recent Posts"
 			   {join #" (" {{a {href ./stuff.html}} see all}
 					 #", " {{a {href ./stuff.rss}} RSS}
 					 #")"})
@@ -24,4 +23,10 @@
 			   {join #" (" {{a {href ./posts.html}} see all}
 					 #", " {{a {href ./blog.rss}} RSS}
 					 #")"})
- {ul #@(map (post->li "." #f) (at-most 5 public-posts))})
+ {ul #@(map (post->li "." #f) (at-most 10 public-posts))}
+ (link-heading 2 "recent-thoughts"
+			   "Recent Thoughts"
+			   {join #" (" {{a {href ./thoughts.html}} see all}
+					 #", " {{a {href ./thoughts.rss}} RSS}
+					 #")"})
+ {ul #@(map (post->li "." #f) (at-most 10 public-thoughts))})

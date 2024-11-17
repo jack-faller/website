@@ -31,7 +31,7 @@
   A great act of ideological consistency on the part of Libertarians is seen as utterly inconsistent by a voter-base who cannot conceive of more than two political perspectives.}
  {p
   I would urge anyone reading this to consider the origins of your ideas.
-  Do you simply hold them because someone you dislike things the opposite?
+  Do you simply hold them because someone you dislike thinks the opposite?
   Do you agree with essentially everyone who supports a given political party?
   That would be highly unlikely to occur naturally, so if you do, you likely hold many beliefs simply because you copied them off someone else.
   This is inextricably linked to first-past-the-post voting systems, which result in only two options with any chance of winning at polling day.

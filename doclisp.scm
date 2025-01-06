@@ -157,49 +157,69 @@
 	  (doclisp-reader port)
 	  val))
 
+(define self-closing-html-tag?
+  (let ((tags (alist->hash-table
+			   (map (lambda (x) (cons x #t))
+					'("area" "base" "br" "col" "embed" "hr" "img" "input" "link"
+					  "meta" "param" "source" "track" "wbr" "!DOCTYPE")))))
+	(lambda (t) (hash-ref tags t))))
+
+;; TODO: Handle character escaping.
 (define (sexp->html sexp)
-  (define (tag first)
-	(cond
-	 ((string? first) (cons first first))
-	 ((list? first)
-	  (cons (string-join
-			 (cons
-			  (car first)
-			  (map (lambda (x)
-					 (if (pair? x)
-						 (string-append
-						  (car x) "=\"" (sexp->html (cons "just" (cdr x))) "\"")
-						 x))
-				   (cdr first))))
-			(car first)))))
+  (call-with-output-string
+	(lambda (port) (write-sexp->html sexp port))))
+(define (write-sexp->html sexp port)
+  (define (write-body sexp port)
+	(unless (null? sexp)
+	  (write-sexp->html (car sexp) port)
+	  (let loop ((sexp (cdr sexp)))
+		(cond
+		 ((null? sexp))
+		 ((eq? (car sexp) 'join)
+		  (write-sexp->html (cadr sexp) port)
+		  (loop (cddr sexp)))
+		 (else
+		  (display " " port)
+		  (write-sexp->html (car sexp) port)
+		  (loop (cdr sexp)))))))
   (cond
-   ((or (not sexp) (null? sexp)) "")
-   ((string? sexp)
-	sexp)
+   ((or (not sexp) (null? sexp)) (display "" port))
+   ((string? sexp) (display sexp port))
+   ((pair? sexp)
+	(cond
+	 ((equal? (car sexp) "just") (write-body (cdr sexp) port))
+	 ((equal? (car sexp) "raw") (display (cdr sexp) port))
+	 ((equal? (car sexp) "join")
+	  (for-each (lambda (x) (write-sexp->html x port)) (cdr sexp)))
+	 (else
+	  (display "<" port)
+	  (let ((name
+			 (if (string? (car sexp))
+				 (begin (display (car sexp) port) (car sexp))
+				 (let ((name (caar sexp)) (attributes (cdar sexp)))
+				   (display name port)
+				   (for-each
+					(lambda (i)
+					   (display " " port)
+					  (if (string? i)
+						  (display i port)
+						  (begin
+							(display (car i) port)
+							(display "=\"" port)
+							(write-body (cdr i) port)
+							(display "\"" port))))
+					attributes)
+				   name))))
+		(if (and (null? (cdr sexp)) (not (equal? name "script")))
+			(display (if (self-closing-html-tag? name) ">" " />") port)
+			(begin
+			  (display ">" port)
+			  (write-body (cdr sexp) port)
+			  (display "</" port)
+			  (display name port)
+			  (display ">" port)))))))
    (else
-	(let ((head (if (or (equal? (car sexp) "just") (equal? (car sexp) "join"))
-					#f
-					(tag (car sexp))))
-		  (body
-		   (apply
-			string-append
-			(if (equal? (car sexp) "join")
-				(filter-map sexp->html (cdr sexp))
-				(unfold
-				 null?
-				 (lambda (lst)
-				   (define str (sexp->html (car lst)))
-				   (if (or (null? (cdr lst)) (eq? (cadr lst) 'join))
-					   str
-					   (string-append str " ")))
-				 (lambda (lst)
-				   (if (and (not (null? (cdr lst))) (eq? (cadr lst) 'join))
-					   (cddr lst)
-					   (cdr lst)))
-				 (filter identity (cdr sexp)))))))
-	  (if head
-		  (string-append "<" (car head) ">" body "</" (cdr head) ">")
-		  body)))))
+	(error "Unexpected object in sexp->html." sexp))))
 
 (define (cmd prog . args)
   (let* ((pipe (apply open-pipe* OPEN_BOTH prog args))

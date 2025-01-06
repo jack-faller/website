@@ -53,31 +53,33 @@
 
 (define* (template root body #:key (blog-name #f) (date #f) (wants-back-arrow? #t))
   {just
-   <!DOCTYPE html>
-   {head {title Jack Faller}
-		 {{link {href {join #root /style.css}} {rel stylesheet} {type text/css}}}
-		 #(and blog-name
-			   {{script const blog-name =
-						#(string-append "\"" blog-name "\"")}
-				{{script {src comment-script.js} defer}}})}
-   {body
-	{main
-	 {header
-	  #(and wants-back-arrow?
-			{{a {href {join #root /index.html}} {title home} {class backarrow}} &larr\;})
-	  #(cond
-		(date {{div {class date}} #(date-format date)})
-		(blog-name {{div {class date}} DRAFT})
-		(else #f))}
-	 #@body
-	 {{footer {id copy-notice}}
-	  &copy\;
-	  {join
-	   #(if (and date (not (= (date-year date) (date-year (current-date)))))
-			{join #(number->string (date-year date)) &ndash\;}
-			"")
-	   #(number->string (date-year (current-date)))}
-	  Jack Faller}}}})
+   {{!DOCTYPE html}}
+   {html
+	{head {title Jack Faller}
+		  {{link {href {join #root /style.css}} {rel stylesheet} {type text/css}}}
+		  #(and blog-name
+				{just
+				 {script const blog-name =
+						 #(string-append "\"" blog-name "\"")}
+				 {{script {src comment-script.js} defer}}})}
+	{body
+	 {main
+	  {header
+	   #(and wants-back-arrow?
+			 {{a {href {join #root /index.html}} {title home} {class backarrow}} &larr\;})
+	   #(cond
+		 (date {{div {class date}} #(date-format date)})
+		 (blog-name {{div {class date}} DRAFT})
+		 (else #f))}
+	  #@body
+	  {{footer {id copy-notice}}
+	   &copy\;
+	   {join
+		#(if (and date (not (= (date-year date) (date-year (current-date)))))
+			 {join #(number->string (date-year date)) &ndash\;}
+			 "")
+		#(number->string (date-year (current-date)))}
+	   Jack Faller}}}}})
 ;; Remember to put .codequote on inline code blocks to avoid word breaking.
 (define (code-block file-name)
   {pre {{code {class block}}
@@ -121,14 +123,13 @@
 (define (home-page . body) (template "." body #:wants-back-arrow? #f))
 
 (system* "rm" "-rf" (thisdir "generated"))
-(define (output-file name)
+(define (output-file-name name)
   (let ((fname (thisdir (string-append "generated/" name))))
 	(system* "mkdir" "-p" (dirname fname))
-	(open-file fname "w")))
+	fname))
 (define (write-sexp-to-html-file name sexp)
-  (let ((out (output-file name)))
-	(display (sexp->html sexp) out)
-	(close-port out)))
+  (call-with-output-file (output-file-name name)
+	(lambda (port) (write-sexp->html sexp port))))
 
 (define (scheme-file-functor f)
   (lambda (file)
@@ -199,10 +200,11 @@
 (write-posts-to-file "stuff.html" "All Stuff" #t public-stuff)
 
 (define stream-size 60)
+;; Technically this is incorrect as it uses HTML rather than XML.
 (define (rss-stream title include-type? posts description)
   (define (rfc-822 date) (date->string date "~a, ~d ~b ~T ~z"))
   {just
-   #"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"
+   {raw #"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"}
    {{rss {version 2.0}}
 	{channel
 	 {title #title}

@@ -1,5 +1,4 @@
 (use-modules (ice-9 ftw)
-			 (ice-9 regex)
 			 (ice-9 receive)
 			 (srfi srfi-19))
 
@@ -19,7 +18,7 @@
 						result)
 				  (cdr list)
 				  (not link?))))
-	{{span {class sectionmark}} #(link "&sect;")}}})
+	{{span {class sectionmark}} #(link "§")}}})
 
 (define (footnotes)
   (define count 0)
@@ -55,28 +54,30 @@
   {just
    {{!DOCTYPE html}}
    {html
-	{head {title Jack Faller}
-		  {{link {href {join #root /style.css}} {rel stylesheet} {type text/css}}}
-		  #(and blog-name
-				{just
-				 {script const blog-name =
-						 #(string-append "\"" blog-name "\"")}
-				 {{script {src comment-script.js} defer}}})}
+	{head
+	 {title Jack Faller}
+	 {{meta {charset utf-8}}}
+	 {{link {href {join #root /style.css}} {rel stylesheet} {type text/css}}}
+	 #(and blog-name
+		   {just
+			{script const blog-name =
+					#(string-append "\"" blog-name "\"")}
+			{{script {src comment-script.js} defer}}})}
 	{body
 	 {main
 	  {header
 	   #(and wants-back-arrow?
-			 {{a {href {join #root /index.html}} {title home} {class backarrow}} &larr\;})
+			 {{a {href {join #root /index.html}} {title home} {class backarrow}} ←})
 	   #(cond
 		 (date {{div {class date}} #(date-format date)})
 		 (blog-name {{div {class date}} DRAFT})
 		 (else #f))}
 	  #@body
 	  {{footer {id copy-notice}}
-	   &copy\;
+	   ©
 	   {join
 		#(if (and date (not (= (date-year date) (date-year (current-date)))))
-			 {join #(number->string (date-year date)) &ndash\;}
+			 {join #(number->string (date-year date)) –}
 			 "")
 		#(number->string (date-year (current-date)))}
 	   Jack Faller}}}}})
@@ -152,8 +153,8 @@
   (lambda (post)
 	{li {{a {href #(post-link root post)}}
 		 #(date->string (post-date post) "~y/~m/~d")
-		 #(and include-type? {just &ndash\; #(post-type post)})
-		 &ndash\;
+		 #(and include-type? {just – #(post-type post)})
+		 –
 		 #(post-title post)}}))
 
 (define (write-posts-to-file file-name title include-type? posts)
@@ -215,7 +216,7 @@
 		(lambda (post)
 		  {item
 		   {title
-			#(and include-type? {just #(post-type post) &ndash\;})
+			#(and include-type? {just #(post-type post) –})
 		  	#(post-title post)}
 		   {link #(post-link "https://jackfaller.xyz" post)}
 		   {pubDate #(rfc-822 (post-date post))}

@@ -2,6 +2,7 @@
 			 (srfi srfi-9)
 			 (srfi srfi-13)
 			 (ice-9 popen)
+			 (ice-9 regex)
 			 (ice-9 rdelim)
 			 (ice-9 hash-table)
 			 (ice-9 textual-ports))
@@ -169,6 +170,13 @@
   (call-with-output-string
 	(lambda (port) (write-sexp->html sexp port))))
 (define (write-sexp->html sexp port)
+  (define (write-escaped string port)
+	(define (map-match m)
+	  (case (string-ref (match:string m) 0)
+		((#\<) "&lt;")
+		((#\>) "&gt;")
+		((#\&) "&amp;")))
+	(regexp-substitute/global port "[<>&]" string 'pre map-match 'post))
   (define (write-body sexp port)
 	(unless (null? sexp)
 	  (write-sexp->html (car sexp) port)
@@ -184,7 +192,7 @@
 		  (loop (cdr sexp)))))))
   (cond
    ((or (not sexp) (null? sexp)) (display "" port))
-   ((string? sexp) (display sexp port))
+   ((string? sexp) (write-escaped sexp port))
    ((pair? sexp)
 	(cond
 	 ((equal? (car sexp) "just") (write-body (cdr sexp) port))

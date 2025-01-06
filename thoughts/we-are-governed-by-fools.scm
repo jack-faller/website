@@ -11,7 +11,7 @@
   Many people would have had to review the idea to cut the winter fuel payment and they collectively decided it was a good idea.
   I can only assume these are whatever talentless dregs were left over after they knifed Corbyn in the back.
   They seem to have about as much understanding of actual governance as they do of optics.
-  But then I think back to Sunak, and he seemed much the same&mdash\;desperately flailing around in the hopes something good would happen and people would like him.
+  But then I think back to Sunak, and he seemed much the same—desperately flailing around in the hopes something good would happen and people would like him.
   Then Truss, Johnson, May, Cameron\; few of these people demonstrated any kind of understanding of the systems of government.
   The decline in the quality of politicians is as stark as it is concerning.
   Is there anyone in this country who's fit to lead it?})

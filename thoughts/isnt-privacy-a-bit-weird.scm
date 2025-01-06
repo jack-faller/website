@@ -4,7 +4,7 @@
  "I see a lot of people very obsessed with privacy, and I really don't get why."
  {p
   A prime example of this would be this guy which basically said: {q Face ID and fingerprint ID are bad because the police can compel you to unlock your phone with those, but not with a password.}.
-  The underlying assumption here is, I think, a common sort of libertarian thought &ndash\; that the government is going to create unjust laws so you, as an individual, should have the right to break them and not get caught.
+  The underlying assumption here is, I think, a common sort of libertarian thought – that the government is going to create unjust laws so you, as an individual, should have the right to break them and not get caught.
   That's a bad thing to be thinking.
   It basically assumes that government is evil so we should move to make it impotent as well, that way it can't hurt us.
   Thinking that there is absolutely no way to fix the government is the end point of political disenfranchisement.

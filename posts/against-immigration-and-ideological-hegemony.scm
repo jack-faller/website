@@ -19,7 +19,7 @@
   The second reason is simply because right-wing people don't like immigration.
   Usually the reason is some form of racism, and racism being bad, people have also decided to reject any other ideas held by racist people.
   However {q the racists are against immigration, so I will support it} is not a valid line of reasoning.
-  It is emblematic of the larger and more corrosive force of two-partyism &ndash\; where there are two always-opposing positions on all matters corresponding to the two political parties.}
+  It is emblematic of the larger and more corrosive force of two-partyism – where there are two always-opposing positions on all matters corresponding to the two political parties.}
  {p
   I have seen this position recently in relation to the Libertarian party in America.
   The recent Libertarian candidate is a supporter of gay rights, and many other things the American right has deemed evil.

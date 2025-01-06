@@ -25,11 +25,11 @@
 		out))
   (string-unfold
    (lambda (c)
-	 (if (list? c)
+	 (if (pair? c)
 		 (eof-object? (car c))
 		 (or (eof-object? c) (f c))))
    (lambda (c)
-	 (if (list? c) (car c) c))
+	 (if (pair? c) (car c) c))
    (lambda (ign)
 	 (read-char port)
 	 (peek-escape port))

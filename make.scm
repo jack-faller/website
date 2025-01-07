@@ -132,27 +132,44 @@
 	{{span {class sectionmark}} #(link "§")}}})
 
 (define-record-type <expression>
-  (make-expression mathml precedence left-fence? right-fence?)
+  (make-expression* mathml operator left-fence? right-fence? top-fence? bottom-fence?)
   expression?
   (mathml expression-mathml)
-  (precedence expression-operator)
+  (operator expression-operator)
   (left-fence? expression-left-fence?)
-  (right-fence? expression-right-fence?))
-(define (atom-expression mathml)
-  (make-expression mathml #f #t #t))
+  (right-fence? expression-right-fence?)
+  (top-fence? expression-top-fence?)
+  (bottom-fence? expression-bottom-fence?))
+(define* (make-expression mathml operator left-fence? right-fence?
+						  #:optional (top-fence? #t) (bottom-fence? #t))
+  (make-expression* mathml operator left-fence? right-fence? top-fence? bottom-fence?))
+(define* (derived-expression e new-mathml)
+  (make-expression new-mathml
+				   (expression-operator e)
+				   (expression-left-fence? e)
+				   (expression-right-fence? e)
+				   (expression-top-fence? e)
+				   (expression-bottom-fence? e)))
+(define* (atom-expression mathml #:optional operator)
+  (make-expression mathml operator #t #t))
 
 (define (math->mathml expr) (expression-mathml (math->expression expr)))
 (define (math expr) {math #(math->mathml expr)})
 (define (math-block expr) {{math {display block}} #(math->mathml expr)})
 ;; Values returned are expr, operator, left-fence, right-fence.
+(define (math-apply f . args)
+  (apply apply (hashq-ref math-definitions f) f args))
 (define* (math->expression expr)
   (cond
-   ((number? expr) (atom-expression {mn #(number->string expr)}))
+   ((number? expr) (if (<= 0 expr)
+					   (atom-expression {mn #(number->string expr)} 'number)
+					   (math-apply 'neg (- expr) '())))
    ((string? expr) (atom-expression {mi #expr}))
    ((symbol? expr) (hashq-ref math-definitions expr))
+   ((eq? expr #f) (atom-expression #f))
    ((pair? expr)
 	(if (symbol? (car expr))
-		(apply (hashq-ref math-definitions (car expr)) expr)
+		(math-apply (car expr) (cdr expr))
 		(apply (hashq-ref math-definitions 'apply) 'apply expr)))
    (else expr)))
 (define (expression-wrap expr)
@@ -177,14 +194,26 @@
 	 e1)))
 (define (wrap-right op e2)
   (let ((e2 (math->expression e2)))
-	(expression-wrap-unless
-	 (or
-	  (precedence-> (expression-operator e2) op)
-	  (and (precedence-= op (expression-operator e2))
-		   (right-associative? (expression-operator e2))
-		   (right-associative? op))
-	  (expression-left-fence? e2))
+	(expression-wrap-if
+	 (or (not (or
+			   (precedence-> (expression-operator e2) op)
+			   (and (precedence-= op (expression-operator e2))
+					(right-associative? (expression-operator e2))
+					(right-associative? op))
+			   (expression-left-fence? e2)))
+		 (and (eq? op '*) (or (eq? (expression-operator e2) '/)
+							  (eq? (expression-operator e2) 'number))))
 	 e2)))
+(define (wrap-lest cond e)
+	(define wrapped (expression-wrap-unless cond e))
+	(if cond
+		(derived-expression e {mrow #wrapped})
+		(atom-expression wrapped)))
+
+(define (wrap-top e)
+  (wrap-lest (expression-bottom-fence? e) e))
+(define (wrap-bottom e)
+  (wrap-lest (expression-top-fence? e) e))
 (define (operate op op-mathml e1 e2)
   (make-expression
    {just #(wrap-left op e1) #op-mathml #(wrap-right op e2)}
@@ -198,10 +227,7 @@
 		(() acc)
 		((and (((and symbol other-name (? (lambda (n) (precedence-= n name))))
 				#f . args) . rest))
-		 (loop
-		  (apply (hashq-ref math-definitions other-name)
-				 other-name acc args)
-		  rest))
+		 (loop (math-apply other-name acc args) rest))
 		((b . rest)
 		 (loop (operate name mathml acc b) rest))))))
 
@@ -216,19 +242,26 @@
 		(af {mo {raw &af\;}}))
 	(alist->hashq-table
 	 `((inf . ,(atom-expression {mi ∞}))
+	   (comment . ,(lambda (name e comment)
+					 (define e* (math->expression e))
+					 (derived-expression
+					  e*
+					  {just #(expression-mathml e*) {mtext #comment}})))
+	   (dots . ,(atom-expression {mi …}))
 	   (lim . ,(lambda (name under expr)
 				 ((prefix {just
 						   {munder
 							{mi lim}
 							{mrow #(math->mathml (caar under))
 								  {mo →} #(math->mathml (cadar under))}}
-						   #it {{mspace width 0.1667em}}})
+						   #it {{mspace {width 0.1667em}}}})
 				  name expr)))
 	   (^ . ,(lambda (name a b)
+			   (define a* (math->expression a))
 			   (define b* (math->expression b))
 			   (make-expression
 				{msup
-				 #(wrap-left name a)
+				 #(wrap-left name (wrap-bottom a*))
 				 {mrow #(expression-wrap-if (eq? name (expression-operator b*))
 											b*)}}
 				name #f #t)))
@@ -245,8 +278,16 @@
 						name #f #f))))
 	   (/ . ,(lambda (name a b)
 			   (make-expression
-				{mfrac {mrow #(math->mathml a)} {mrow #(math->mathml b)}}
-				'/ #t #t)))
+				{mfrac #(expression-mathml (wrap-top (math->expression a)))
+					   #(expression-mathml (wrap-bottom (math->expression b)))}
+				'/ #t #t #f #f)))
+	   (stack . ,(lambda (name . rest)
+				   (define (row x)
+					 {mtr {{mtd {class math-stack-left}}
+						   #(wrap-left (car x) (cadr x))}
+						  {{mtd {class math-stack-right}}
+						   #(math->mathml (cons* (car x) #f (cddr x)))}})
+				   (atom-expression {mtable #@(map row rest)})))
 	   (* . ,(infix it))
 	   (+ . ,(infix {mo +}))
 	   (- . ,(infix {mo −}))
@@ -267,7 +308,7 @@
 ;; Earlier operators evaluate sooner.
 (define-values (precedence-> precedence-=)
   (let* ((inequalities
-		  '((tuple ^ apply * dot + sum =)))
+		  '((^ apply * dot + sum =)))
 		 (equalities
 		  '((= ~~)
 			(sum lim)
@@ -291,10 +332,12 @@
 	(lambda (a b)
 	  (eq? (canonical a) (canonical b))))))
 
+(define (script-operator? op)
+  (eq? op '^))
 (define (left-associative? op)
   (not (right-associative? op)))
 (define (right-associative? op)
-  (eq? op '^))
+  (or (eq? op '^)))
 
 (define (footnotes)
   (define count 0)

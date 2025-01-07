@@ -127,3 +127,11 @@ code {
 math {
 	font-family: STIXTwoMath;
 }
+.math-stack-right {
+	math-style: normal;
+	text-align: left;
+}
+.math-stack-left {
+	math-style: normal;
+	text-align: right;
+}

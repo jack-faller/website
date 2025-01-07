@@ -1,4 +1,9 @@
 @font-face {
+	font-family: STIXTwoMath;
+	src: url('STIXTwoMath-Regular.otf') format('truetype');
+	font-weight: normal; font-style: normal;
+}
+@font-face {
 	font-family: Cochineal;
 	src: url('Cochineal-Roman.woff2') format('woff2'),
 		 url('Cochineal-Roman.woff') format('woff'),
@@ -117,4 +122,8 @@ code {
 	font-size: 18px;
 	border-radius: 5px;
 	background-color: var(--code-bg);
+}
+
+math {
+	font-family: STIXTwoMath;
 }

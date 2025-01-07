@@ -133,5 +133,6 @@ math {
 }
 .math-stack-left {
 	math-style: normal;
-	text-align: right;
+	/* This makes the alignment worse since it isn't implemented. */
+	/* text-align: right; */
 }

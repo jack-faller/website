@@ -281,6 +281,8 @@
 				{mfrac #(expression-mathml (wrap-top (math->expression a)))
 					   #(expression-mathml (wrap-bottom (math->expression b)))}
 				'/ #t #t #f #f)))
+	   ;; TODO: This alignment doesn't work properly on some browsers.
+	   ;; The left column aligns left instead of right.
 	   (stack . ,(lambda (name . rest)
 				   (define (row x)
 					 {mtr {{mtd {class math-stack-left}}

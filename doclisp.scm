@@ -196,7 +196,7 @@
    ((pair? sexp)
 	(cond
 	 ((equal? (car sexp) "just") (write-body (cdr sexp) port))
-	 ((equal? (car sexp) "raw") (display (cdr sexp) port))
+	 ((equal? (car sexp) "raw") (display (cadr sexp) port))
 	 ((equal? (car sexp) "join")
 	  (for-each (lambda (x) (write-sexp->html x port)) (cdr sexp)))
 	 (else

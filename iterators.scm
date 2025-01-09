@@ -6,6 +6,7 @@
 			iterator-defer! iterator-replace!
 			;; Useful macros.
 			let-next if-let-next apply-to-next apply-to-next*
+			iter-for iter-for!
 
 			;; Access.
 			iter-find iter-next iter-peek
@@ -89,8 +90,8 @@
 	  ((_ ((name val) ...) body ...)
 	   (apply-to-next (lambda (name ...) body ...) (val ...))))
   (if-let-next
-   ((_ ((name val) ...) then else)
-	(apply-to-next* (lambda () else) (lambda (name ...) then) (val ...))))
+	  ((_ ((name val) ...) then else)
+	   (apply-to-next* (lambda () else) (lambda (name ...) then) (val ...))))
   (setter-impl
    ((_ () ((name name-name) ...))
 	(lambda (return name-name ...) (set! name name-name) ... return))
@@ -130,7 +131,12 @@
 	(let ((name it)) (iter-zip-impl (its ...) (names ... name)))))
   (iter-zip
    ((_ its ...)
-	(iter-zip-impl (its ...) ()))))
+	(iter-zip-impl (its ...) ())))
+  (iter-for ((_ ((name iter) ...) body ...)
+			 (let ((name iter) ...)
+			   (iterate ()
+				 (apply-to-next (lambda (name ...) body ...) (name ...))))))
+  (iter-for! ((_ (def ...) body ...) (iter-run (iter-for (def ...) body ...)))))
 (iterate-impl (iterate let) (iterate* let*))
 
 (define (iterator-replace! old new)

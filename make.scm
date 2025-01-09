@@ -1,8 +1,25 @@
-(use-modules (ice-9 ftw)
+(use-modules (iterators)
+			 (doclisp)
+			 (ice-9 ftw)
 			 (ice-9 match)
+			 (ice-9 regex)
 			 (ice-9 unicode)
 			 (ice-9 receive)
+			 (ice-9 hash-table)
+			 (srfi srfi-1)
+			 (srfi srfi-9)
 			 (srfi srfi-19))
+
+(set-reader! doclisp-reader)
+
+(define (cmd prog . args)
+  (let* ((pipe (apply open-pipe* OPEN_BOTH prog args))
+		 (output (read-string pipe)))
+	(close pipe)
+	output))
+
+(define current-dir (string-append (or (getenv "THISDIR") ".") "/"))
+(define (thisdir f) (string-append current-dir f))
 
 (define (style-vect-index capital? italic? bold?)
   (+ (if capital? 4 0) (if italic? 2 0) (if bold? 1 0)))
@@ -48,7 +65,7 @@
 	 (get #(#\𝔞 #\𝖆 #f #f #\𝔄 #\𝕬 #f #f)))
 	((script)
 	 (or
-	  (and (not bold?) (not italic?)
+  (and (not bold?) (not italic?)
 		   (let ((c (char-+ #\A letter)))
 			 (if capital?
 				 (case c
@@ -236,6 +253,33 @@
 	(make-expression {just #mathml #(wrap-right name a)} name #t #f)))
 
 ;; TODO: Use mo movable-limits property in sum.
+
+(define (math-rewrite terms)
+  (define (detag terms)
+	(cond ((not (pair? terms)) terms)
+		  ((eq? (car terms) 'tag) (caddr terms))
+		  (else (map detag terms))))
+  (define (rewrite terms dictionary)
+	(let rw ((terms terms))
+	  (cond ((not (pair? terms)) terms)
+			((eq? (car terms) 'tag)
+			 (let ((replacement (hash-ref dictionary (cadr terms) dictionary)))
+			   (if (eq? replacement dictionary) (map rw terms) replacement)))
+			(else (map rw terms)))))
+  ;; TODO: Make allow for an arbitrary expression with (get tag) substituted.
+  ;; (get #f) gives the previous expression.
+  (define (get-next acc expr)
+	(if (eqv? expr #f) acc (error "TODO: this")))
+  (cons
+   (detag (car terms))
+   (iter->list
+	(iter-map
+	 detag
+	 (iterate
+	  (lambda (acc next)
+		(rewrite (get-next acc (car next)) (alist->hash-table (cdr next))))
+	  (car terms)
+	  (list->iter (cdr terms)))))))
 
 (define math-definitions
   (let ((it {mo {raw &it\;}})
@@ -490,7 +534,7 @@
 	   (receive (n nr format-notes) (footnotes)
 		 (set! note n)
 		 (set! note-ref nr)
-		 (let ((p (dl-load file)))
+		 (let ((p (load file doclisp-reader)))
 		   (post-name! p name)
 		   (post-body! p `(,@(post-body p) ,(format-notes)))
 		   (post-type! p post-type)
@@ -555,6 +599,6 @@
    (for-each
 	(scheme-file-functor
 	 (lambda (name file)
-	   (write-sexp-to-html-file (string-append name "." ext) (dl-load file))))
+	   (write-sexp-to-html-file (string-append name "." ext) (load file doclisp-reader))))
 	(dirfiles (string-append "pages/" ext))))
  (dirfiles "pages"))

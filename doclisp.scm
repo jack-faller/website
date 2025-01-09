@@ -1,11 +1,23 @@
-(use-modules (srfi srfi-1)
-			 (srfi srfi-9)
-			 (srfi srfi-13)
-			 (ice-9 popen)
-			 (ice-9 regex)
-			 (ice-9 rdelim)
-			 (ice-9 hash-table)
-			 (ice-9 textual-ports))
+(define-module (doclisp)
+  #:use-module (iterators)
+  #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-13)
+  #:use-module (ice-9 popen)
+  #:use-module (ice-9 regex)
+  #:use-module (ice-9 rdelim)
+  #:use-module (ice-9 hash-table)
+  #:use-module (ice-9 textual-ports)
+  #:export (set-reader! doclisp-reader sexp->html write-sexp->html))
+
+(define-syntax set-reader!
+  (syntax-rules ()
+	((_ reader)
+	 (eval-when (compile eval)
+	   (fluid-set! current-reader reader)))))
+
+(define (port-position port)
+  (vector (port-filename port) (port-line port) (port-column port)))
 
 (define (drop-space port)
   (let ((found-space #f))
@@ -36,25 +48,17 @@
 	 (peek-escape port))
    (peek-escape port)))
 
-(define stop-unfolding (substring/copy "stop-unfolding" 0))
-(define (unfold-until f)
-  (unfold (lambda (c) (eq? c stop-unfolding)) identity (lambda (_) (f)) (f)))
-
 (define (delimited-read end port table join?)
-  (let ((dropped-space? #t))
-   (unfold-until
-	(lambda ()
-	  (set! dropped-space? (or (drop-space port) dropped-space?))
-	  (let ((peeked (peek-char port)))
-		(cond
-		 ((eof-object? peeked) (error "Missing closing delimiter."))
-		 ((eq? peeked end) (read-char port) stop-unfolding)
-		 ((or dropped-space? (not join?))
-		  (set! dropped-space? #f)
-		  (table-read port table))
-		 (else
-		  (set! dropped-space? #t)
-		  'join)))))))
+  (iter->list
+   (iterate null ((first? #t))
+	 (let* ((dropped-space? (drop-space port))
+			(peeked (peek-char port)))
+	   (cond
+		((eof-object? peeked) (error "Missing closing delimiter."))
+		((eq? peeked end) (read-char port) (null))
+		((or dropped-space? (not join?) first?)
+		 (values (table-read port table) #f))
+		(else (values 'join #t)))))))
 
 (define (table-read port table)
   (drop-space port)
@@ -72,7 +76,7 @@
 		  (fold-right
 		   (lambda (i rest)
 			 (cond
-			  ((not (or (eq? i '#{.}#)))
+			  ((not (or (eq? (syntax->datum i) '#{.}#)))
 			   (if (eq? comment i)
 				   rest
 				   (cons i rest)))
@@ -81,7 +85,10 @@
 		   '()
 		   (delimited-read end port table #f)))))
 (define (quote-syntax-pair char sym)
-  (cons char (lambda (port table) (list sym (table-read port table)))))
+  (cons char
+		(lambda (port table)
+		  (define pos (port-position port))
+		  (list (datum->syntax #f sym #:source pos) (table-read port table)))))
 (define (unquote-reader port table)
   (let ((sym (if (eq? (peek-char port) #\@)
 				 (begin (read-char port) 'unquote-splicing)
@@ -122,13 +129,19 @@
 						  (drop-block-comment port)
 						  (table-read port table))
 				   (unquote-reader port default-read-table))))
-	 (atom . ,read-atom))))
+	 (atom . ,(lambda (port table)
+				(define pos (port-position port))
+				(datum->syntax #f (read-atom port table) #:source pos))))))
 (define default-read-table
   (alist->hashq-table
    `((atom . ,(lambda (port table)
 				(if (eq? (peek-char port) #\")
-					(read port)
-					(read (open-input-string (read-atom port table))))))
+					(read-syntax port)
+					(let ((pos (port-position port)))
+					  (datum->syntax
+					   #f
+					   (call-with-input-string (read-atom port table) read)
+					   #:source pos)))))
 	 ,(list-syntax-pair #\( #\))
 	 ,(list-syntax-pair #\[ #\])
 	 ,(quote-syntax-pair #\' 'quote)
@@ -228,14 +241,3 @@
 			  (display ">" port)))))))
    (else
 	(error "Unexpected object in sexp->html." sexp))))
-
-(define (cmd prog . args)
-  (let* ((pipe (apply open-pipe* OPEN_BOTH prog args))
-		 (output (read-string pipe)))
-	(close pipe)
-	output))
-
-(define current-dir (string-append (dirname (current-filename)) "/"))
-(define (thisdir f) (string-append current-dir f))
-(define (dl-load file) (load file doclisp-reader))
-(dl-load (thisdir "make.scm"))

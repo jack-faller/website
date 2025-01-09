@@ -384,7 +384,7 @@
 	((start end) (iter-range start end (if (< start end) 1 -1)))
 	((start end step)
 	 (unless (and (integer? start) (integer? end) (integer? step))
-	   (error "Non-integer arguments to range iterator may cause imprecision errors."))
+	   (error "Non-integer arguments to iter-range iterator may cause imprecision errors, try iter-iota."))
 	 (define count (- end start))
 	 (iter-iota (+ 1 (quotient count step)) start step))))
 (define (iter-forever item) (iterator () item))

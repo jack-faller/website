@@ -275,7 +275,7 @@
    (iter->list
 	(iter-map
 	 detag
-	 (iterate
+	 (iter-scan
 	  (lambda (acc next)
 		(rewrite (get-next acc (car next)) (alist->hash-table (cdr next))))
 	  (car terms)

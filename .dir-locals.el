@@ -1,7 +1,8 @@
 ((scheme-mode
   . ((eval . (put 'iterator 'scheme-indent-function #'scheme-let-indent))
 	 (eval . (progn
-			   (put 'iter-let 'scheme-indent-function #'scheme-let-indent)
+			   (put 'let-next 'scheme-indent-function #'scheme-let-indent)
+			   (put 'if-let-next 'scheme-indent-function #'scheme-let-indent)
 			   (let* ((sym "[^][(){}[:space:]\n]+")
 					  (space "[[:space:]\n]")
 					  (regex (concat space "*\\(" sym "\\)\\(" space "+" sym "\\)?")))

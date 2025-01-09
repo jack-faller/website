@@ -230,19 +230,19 @@
 
 (define-syntax*
   (lambda-cases
-   ((_ macro () cases \...)
-	(case-lambda cases \...))
-   ((_ macro (macro-case \... (arg \...)) normal-case \...)
-	(lambda-cases macro (macro-case \...)
-				  ((arg \...) (macro arg \...)) normal-case \...)))
+   ((_ macro () cases ...)
+	(case-lambda cases ...))
+   ((_ macro (macro-case ... (arg ...)) normal-case ...)
+	(lambda-cases macro (macro-case ...)
+				  ((arg ...) (macro arg ...)) normal-case ...)))
   (map-case
-   ((_ f arg \...) (iterator () (apply-to-iterators f (arg \...)))))
+   ((_ f arg ...) (iterator () (apply-to-iterators f (arg ...)))))
   (for-each-case
-   ((_ f arg \...)
-	(iter-run (iter-map f arg \...))))
+   ((_ f arg ...)
+	(iter-run (iter-map f arg ...))))
   (fold-case
-   ((_ f seed arg \...)
-	(iter-for-each (lambda (arg \...) (set! seed (f seed arg \...))) arg \...))))
+   ((_ f seed arg ...)
+	(iter-for-each (lambda (arg ...) (set! seed (f seed arg ...))) arg ...))))
 
 (define (assert-1-arg args)
   (when (null? args)

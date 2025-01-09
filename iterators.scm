@@ -2,21 +2,19 @@
   (export
    ;; Primitive creation.
    iterator iterator?
-   iter-null iter-null? iter-or
-   ;; TODO: (iterate-for[*!] ((var iter)) ((var val)) body)
-   iterate iterate*
    iterator-defer! iterator-replace!
-   ;; Useful macros.
-   let-next if-let-next apply-to-next apply-to-next*
-   iter-for iter-for!
+   iter-null iter-null? iter-or
+   iterate iterate*
+   let-next if-let-next apply-to-next apply-to-next* iter-for iter-for!
 
    ;; Access.
    iter-find iter-next iter-peek
 
    ;; Creation.
    list->iter repeat-list->iter pairs->iter
-   string->iter repeat-string->iter port->char-iter
+   string->iter repeat-string->iter
    vector->iter repeat-vector->iter
+   port->char-iter
    iter-forever iter-repeat
    tree->iter
    iter-range iter-iota
@@ -30,11 +28,11 @@
    iter-zip
 
    ;; Collection.
-   iter-any iter-every iter->string iter->list iter->vector
+   iter-any iter-every iter-count
+   iter->string iter->list iter->vector
    iter-for-each iter-run iter-last
-   iter-fold iter-reduce
-   iter-count)
-
+   iter-fold iter-reduce)
+  
   (import (rnrs base (6))
 		  (rnrs control (6))
 		  (rnrs io ports (6))

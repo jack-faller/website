@@ -3,7 +3,6 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-13)
-  #:use-module (ice-9 popen)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 hash-table)

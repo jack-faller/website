@@ -15,6 +15,7 @@
 					 ((match-beginning 2) 3)
 					 ((match-beginning 1) 2))
 					state indent-point normal-indent)))
+			   (put 'iterate 'define-syntax* #'scheme-let-indent)
 			   (put 'iterate 'scheme-indent-function #'iterators-iterate-indent)
 			   (put 'iterate* 'scheme-indent-function #'iterators-iterate-indent)))))
  (nil . ((compile-command . "make")

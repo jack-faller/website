@@ -5,101 +5,92 @@
   iterator?
   (next-function iterator-next-function set-iterator-next-function!))
 
-(define-syntax iterator
+(define-syntax define-syntax*
   (syntax-rules ()
-	((_ () body ...)
-	 (iterator ignored-1 (ignored-2) body ...))
-	((_ (this) body ...)
-	 (iterator ignored-1 (this) body ...))
-	((_ name () body ...)
-	 (iterator name (ignored-2) body ...))
-	((_ recur (this) body ...)
-	 (make-iterator
-	  (letrec ((function (lambda (this) (let recur () body ...))))
-		function)))))
-(define-syntax define-syntax*-1
-  (syntax-rules ()
-	((_ name (pat sub) ...)
-	 (define-syntax name (syntax-rules () (pat sub) ...)))
 	((_ name (ident ...) (pat sub) ...)
 	 (define-syntax name (syntax-rules (ident ...) (pat sub) ...)))
 	;; SRFI-46 custom ellipses.
-	((_ name ellip (pat sub) ...)
-	 (define-syntax name (syntax-rules ellip () (pat sub) ...)))
 	((_ name ellip (ident ...) (pat sub) ...)
 	 (define-syntax name (syntax-rules ellip (ident ...) (pat sub) ...)))))
-(define-syntax define-syntax*
-  (syntax-rules ()
-	((_ (rule ...) ...) (begin (define-syntax*-1 rule ...) ...))))
+(define-syntax* iterator ()
+  ((_ () body ...)
+   (iterator ignored-1 (ignored-2) body ...))
+  ((_ (this) body ...)
+   (iterator ignored-1 (this) body ...))
+  ((_ name () body ...)
+   (iterator name (ignored-2) body ...))
+  ((_ recur (this) body ...)
+   (make-iterator
+	(letrec ((function (lambda (this) (let recur () body ...))))
+	  function))))
 
-(define-syntax*
-  (while ((_ test body ...) (let loop () (when test body ... (loop)))))
-  (iter-or
-   ((_ item) item)
-   ((_ first item ...)
-	(let ((i first)) (if (iter-null? i) (iter-or item ...) i))))
-  (apply-to-next*
-   ((_ false-case f arg ... ()) (f arg ...))
-   ((_ false-case f arg ... (first iterator ...))
-	(let ((it (iter-next first)))
-	  (if (iter-null? it)
-		  (false-case)
-		  (apply-to-next* false-case f arg ... it (iterator ...))))))
-  (apply-to-next
-   ((_ f arg ... (iterator ...))
-	(apply-to-next* (lambda () iter-null) f arg ... (iterator ...))))
-  (let-next
-	  ((_ ((name val) ...) body ...)
-	   (apply-to-next (lambda (name ...) body ...) (val ...))))
-  (if-let-next
-	  ((_ ((name val) ...) then else)
-	   (apply-to-next* (lambda () else) (lambda (name ...) then) (val ...))))
-  (setter-impl
-   ((_ () ((name name-name) ...))
-	(lambda (return name-name ...) (set! name name-name) ... return))
-   ((_ (first name ...) (pairs ...))
-	(setter-impl (name ...) (pairs ... (first name-name)))))
+(define-syntax* while () ((_ test body ...) (let loop () (when test body ... (loop)))))
+(define-syntax* iter-or ()
+  ((_ item) item)
+  ((_ first item ...)
+   (let ((i first)) (if (iter-null? i) (iter-or item ...) i))))
+(define-syntax* apply-to-next* ()
+  ((_ false-case f arg ... ()) (f arg ...))
+  ((_ false-case f arg ... (first iterator ...))
+   (let ((it (iter-next first)))
+	 (if (iter-null? it)
+		 (false-case)
+		 (apply-to-next* false-case f arg ... it (iterator ...))))))
+(define-syntax* apply-to-next ()
+  ((_ f arg ... (iterator ...))
+   (apply-to-next* (lambda () iter-null) f arg ... (iterator ...))))
+(define-syntax* let-next ()
+  ((_ ((name val) ...) body ...)
+   (apply-to-next (lambda (name ...) body ...) (val ...))))
+(define-syntax* if-let-next ()
+  ((_ ((name val) ...) then else)
+   (apply-to-next* (lambda () else) (lambda (name ...) then) (val ...))))
+(define-syntax* setter-impl ()
+  ((_ () ((name name-name) ...))
+   (lambda (return name-name ...) (set! name name-name) ... return))
+  ((_ (first name ...) (pairs ...))
+   (setter-impl (name ...) (pairs ... (first name-name)))))
   ;; For use in iterate.
-  (setter ((_ names ...) (setter-impl (names ...) ())))
-  (iterate-impl-impl
-   ((_ let null recur ((name value) ...) body ...)
-	(let ((name value) ...)
-	  (iterator loop ()
-		(call-with-values
-			(lambda ()
-			  (letrec ((s (setter name ...))
-					   (null (lambda () (values iter-null name ...)))
-					   (recur (lambda (name ...) (s #f name ...) (do-body)))
-					   (do-body (lambda () body ...)))
-				(do-body)))
-		  (setter name ...))))))
-  (iterate-impl
-   ((_ (let-name let-type) ...)
-	(begin
-	  (define-syntax*
-		(let-name
-		 :::
-		 ((let-name ((name value) :::) body :::)
-		  (iterate-impl-impl let-type ignore-1 ignore-2 ((name value) :::) body :::))
-		 ((let-name null ((name value) :::) body :::)
-		  (iterate-impl-impl let-type null ignore ((name value) :::) body :::))
-		 ((let-name null recur ((name value) :::) body :::)
-		  (iterate-impl-impl let-type null recur ((name value) :::) body :::))))
-	  ...)))
-  (iter-zip-impl
-   ((_ () (names ...))
-	(iterator () (apply-to-next values (names ...))))
-   ((_ (it its ...) (names ...))
-	(let ((name it)) (iter-zip-impl (its ...) (names ... name)))))
-  (iter-zip
-   ((_ its ...)
-	(iter-zip-impl (its ...) ())))
-  (iter-for ((_ ((name iter) ...) body ...)
-			 (let ((name iter) ...)
-			   (iterate ()
-				 (apply-to-next (lambda (name ...) body ...) (name ...))))))
-  (iter-for! ((_ (def ...) body ...) (iter-run (iter-for (def ...) body ...)))))
+(define-syntax* setter () ((_ names ...) (setter-impl (names ...) ())))
+(define-syntax* iterate-impl-impl ()
+  ((_ let null recur ((name value) ...) body ...)
+   (let ((name value) ...)
+	 (iterator loop ()
+	   (call-with-values
+		   (lambda ()
+			 (letrec ((s (setter name ...))
+					  (null (lambda () (values iter-null name ...)))
+					  (recur (lambda (name ...) (s #f name ...) (do-body)))
+					  (do-body (lambda () body ...)))
+			   (do-body)))
+		 (setter name ...))))))
+(define-syntax* iterate-impl ()
+  ((_ (let-name let-type) ...)
+   (begin
+	 (define-syntax* let-name ::: ()
+	   ((let-name ((name value) :::) body :::)
+		(iterate-impl-impl let-type ignore-1 ignore-2 ((name value) :::) body :::))
+	   ((let-name null ((name value) :::) body :::)
+		(iterate-impl-impl let-type null ignore ((name value) :::) body :::))
+	   ((let-name null recur ((name value) :::) body :::)
+		(iterate-impl-impl let-type null recur ((name value) :::) body :::)))
+	 ...)))
 (iterate-impl (iterate let) (iterate* let*))
+(define-syntax* iter-zip-impl ()
+  ((_ () (names ...))
+   (iterator () (apply-to-next values (names ...))))
+  ((_ (it its ...) (names ...))
+   (let ((name it)) (iter-zip-impl (its ...) (names ... name)))))
+(define-syntax* iter-zip ()
+  ((_ its ...)
+   (iter-zip-impl (its ...) ())))
+(define-syntax* iter-for ()
+  ((_ ((name iter) ...) body ...)
+   (let ((name iter) ...)
+	 (iterate ()
+	   (apply-to-next (lambda (name ...) body ...) (name ...))))))
+(define-syntax* iter-for! ()
+  ((_ (def ...) body ...) (iter-run (iter-for (def ...) body ...))))
 
 (define (iterator-replace! old new)
   (set-iterator-next-function! old (iterator-next-function new)))
@@ -224,75 +215,74 @@
 (define (assert-1-arg name args)
   (when (null? args)
 	(error name "Expected at least one rest argument." args)))
-(define-syntax*
-  (define-variadic
-	((_ name case-name arg ...)
-	 (define name
-	   (lambda-cases
-		case-name
-		((arg ... a) (arg ... a b) (arg ... a b c) (arg ... a b c d) (arg ... . rest))))))
-  (lambda-cases
-   ((_ macro () cases ...)
-	(case-lambda cases ...))
-   ((_ macro (macro-case ... last-case) normal-case ...)
-	(lambda-cases macro (macro-case ...)
-				  (last-case (macro . last-case)) normal-case ...)))
-  (map-case
-   ((_ f arg ...) (iterator () (apply-to-next f (arg ...))))
-   ((_ f . rest)
-	(begin
-	  (assert-1-arg "iter-map" rest)
-	  (iterator ()
-		(let ((its (step-iterators rest)))
-		  (if its (apply f its) iter-null))))))
-  (for-each-case
-   ((_ f arg ...)
-	(iter-run (iter-map f arg ...)))
-   ((_ f . rest)
-	(begin
-	  (assert-1-arg "iter-for-each" rest)
-	  (iter-run (apply iter-map f rest)))))
-  (fold-case
-   ((_ f seed arg ...)
-	(begin
-	  (iter-for-each (lambda (arg ...) (set! seed (f seed arg ...))) arg ...)
-	  seed))
-   ((_ f seed . rest)
-	(begin
-	  (assert-1-arg "iter-fold" rest)
-	  (apply iter-for-each (lambda args (set! seed (apply f seed args))) rest)
-	  seed)))
-  (scan-case
-   ((_ f seed arg ...)
-	(iterate null ((seed seed))
-	  (apply-to-next*
-	   null
-	   (lambda (seed arg ...)
-		 (define out (f seed arg ...))
-		 (values out out))
-	   seed (arg ...))))
-   ((_ f seed . rest)
-	(begin
-	  (assert-1-arg "iter-scan" rest)
-	  (iterate null ((seed seed))
-		(let ((its (step-iterators rest)))
-		  (if its
-			  (let ((out (apply f its)))
-				(values out out))
-			  (null)))))))
-  (count-case
-   ((_ pred? arg ...)
-	(iter-fold
-	 + 0 (iter-map (lambda (arg ...) (if (pred? arg ...) 1 0)) arg ...)))
-   ((_ pred? . rest)
-	(iter-fold
-	 + 0 (apply iter-map (lambda args (if (apply pred? args) 1 0)) rest))))
-  (any-case
-   ((_ pred? arg ...) (iter-find identity #f (iter-map pred? arg ...)))
-   ((_ pred? . rest) (iter-find identity #f (apply iter-map pred? rest))))
-  (every-case
-   ((_ pred? arg ...) (iter-find not #t (iter-map pred? arg ...)))
-   ((_ pred? . rest) (iter-find not #t (apply iter-map pred? rest)))))
+(define-syntax* define-variadic ()
+  ((_ name case-name arg ...)
+   (define name
+	 (lambda-cases
+	  case-name
+	  ((arg ... a) (arg ... a b) (arg ... a b c) (arg ... a b c d) (arg ... . rest))))))
+(define-syntax* lambda-cases ()
+  ((_ macro () cases ...)
+   (case-lambda cases ...))
+  ((_ macro (macro-case ... last-case) normal-case ...)
+   (lambda-cases macro (macro-case ...)
+				 (last-case (macro . last-case)) normal-case ...)))
+(define-syntax* map-case ()
+  ((_ f arg ...) (iterator () (apply-to-next f (arg ...))))
+  ((_ f . rest)
+   (begin
+	 (assert-1-arg "iter-map" rest)
+	 (iterator ()
+	   (let ((its (step-iterators rest)))
+		 (if its (apply f its) iter-null))))))
+(define-syntax* for-each-case ()
+  ((_ f arg ...)
+   (iter-run (iter-map f arg ...)))
+  ((_ f . rest)
+   (begin
+	 (assert-1-arg "iter-for-each" rest)
+	 (iter-run (apply iter-map f rest)))))
+(define-syntax* fold-case ()
+  ((_ f seed arg ...)
+   (begin
+	 (iter-for-each (lambda (arg ...) (set! seed (f seed arg ...))) arg ...)
+	 seed))
+  ((_ f seed . rest)
+   (begin
+	 (assert-1-arg "iter-fold" rest)
+	 (apply iter-for-each (lambda args (set! seed (apply f seed args))) rest)
+	 seed)))
+(define-syntax* scan-case ()
+  ((_ f seed arg ...)
+   (iterate null ((seed seed))
+	 (apply-to-next*
+	  null
+	  (lambda (seed arg ...)
+		(define out (f seed arg ...))
+		(values out out))
+	  seed (arg ...))))
+  ((_ f seed . rest)
+   (begin
+	 (assert-1-arg "iter-scan" rest)
+	 (iterate null ((seed seed))
+	   (let ((its (step-iterators rest)))
+		 (if its
+			 (let ((out (apply f its)))
+			   (values out out))
+			 (null)))))))
+(define-syntax* count-case ()
+  ((_ pred? arg ...)
+   (iter-fold
+	+ 0 (iter-map (lambda (arg ...) (if (pred? arg ...) 1 0)) arg ...)))
+  ((_ pred? . rest)
+   (iter-fold
+	+ 0 (apply iter-map (lambda args (if (apply pred? args) 1 0)) rest))))
+(define-syntax* any-case ()
+  ((_ pred? arg ...) (iter-find identity #f (iter-map pred? arg ...)))
+  ((_ pred? . rest) (iter-find identity #f (apply iter-map pred? rest))))
+(define-syntax* every-case ()
+  ((_ pred? arg ...) (iter-find not #t (iter-map pred? arg ...)))
+  ((_ pred? . rest) (iter-find not #t (apply iter-map pred? rest))))
 
 (define-variadic iter-map map-case f)
 (define-variadic iter-fold fold-case f seed)

@@ -35,9 +35,11 @@
    iter-fold iter-reduce)
 
   (import (scheme base) (scheme case-lambda))
-  ;; R6RS version.
-  ;; (import (rnrs control (6))
-  ;; 		  (rnrs io ports (6))
+  ;; R6RS version:
+  ;; (import (rnrs base (6))
+  ;; 		  (rnrs r5rs (6))
+  ;; 		  (rnrs control (6))
+  ;; 		  (rnrs io simple (6))
   ;; 		  (rnrs mutable-pairs (6))
   ;; 		  (srfi 6)	;; String ports.
   ;; 		  (srfi 9)	;; Records.

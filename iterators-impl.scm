@@ -358,7 +358,7 @@
 	  iter-null
 	  (iterate ((count 0) (item #f))
 		(define item* (if (= count 0) (iter-next iter) item))
-		(values item* (modulo (+ count 1) n) item*))))
+		(values item* (remainder (+ count 1) n) item*))))
 
 (define (iter-take n iter)
   (iterate null ((n n))

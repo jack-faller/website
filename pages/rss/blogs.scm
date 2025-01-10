@@ -1,3 +1,3 @@
 (rss-stream
- "Jack Faller's Blog" #f public-posts
+ "Jack Faller's Blogs" #f public-blogs
  "My blog posts, general musings on life.")

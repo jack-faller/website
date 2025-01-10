@@ -8,25 +8,25 @@
   This is the place I will be collating and writing about the things I've done (programming or otherwise), and sharing my general musings on life.
   I have been cursed with a great many ideas and I hope they may be of some use to you.}
  {ul
-  {li {b Blog}: {{a {href \#heading-recent-blog}} recent}, {{a {href ./posts.html}} see all}, {{a {href ./blog.rss}} RSS}}
-  {li {b Thoughts}: {{a {href \#heading-recent-thoughts}} recent}, {{a {href ./thoughts.html}} see all}, {{a {href ./thoughts.rss}} RSS}}
+  {li {b Blog}: {{a {href \#heading-recent-blog}} recent}, {{a {href ./blogs.html}} see all}, {{a {href ./rss/blogs.rss}} RSS}}
+  {li {b Thoughts}: {{a {href \#heading-recent-thoughts}} recent}, {{a {href ./thoughts.html}} see all}, {{a {href ./rss/thoughts.rss}} RSS}}
   {li {b Github}: {{a {href https://github.com/jack-faller}} github.com/jack-faller}}
   {li {b Email}: {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
- (link-heading 2 "recent-stuff"
-			   "Recent Posts"
-			   {join #" (" {{a {href ./stuff.html}} see all}
-					 #", " {{a {href ./stuff.rss}} RSS}
-					 #")"})
- {ul #@(map (post->li "." #t) (at-most 10 public-stuff))}
- (link-heading 2 "recent-blog"
-			   "Recent Blog Posts"
+ (link-heading 2 "posts"
+			   "Posts"
 			   {join #" (" {{a {href ./posts.html}} see all}
-					 #", " {{a {href ./blog.rss}} RSS}
+					 #", " {{a {href ./rss/posts.rss}} RSS}
 					 #")"})
- {ul #@(map (post->li "." #f) (at-most 10 public-posts))}
+ {ul #@(map (post->li "." #t) (at-most 10 public-posts))}
+ (link-heading 2 "recent-blog"
+			   "Blog"
+			   {join #" (" {{a {href ./blogs.html}} see all}
+					 #", " {{a {href ./rss/blogs.rss}} RSS}
+					 #")"})
+ {ul #@(map (post->li "." #f) (at-most 10 public-blogs))}
  (link-heading 2 "recent-thoughts"
-			   "Recent Thoughts"
+			   "Thoughts"
 			   {join #" (" {{a {href ./thoughts.html}} see all}
-					 #", " {{a {href ./thoughts.rss}} RSS}
+					 #", " {{a {href ./blog/thoughts.rss}} RSS}
 					 #")"})
  {ul #@(map (post->li "." #f) (at-most 10 public-thoughts))})

@@ -1,3 +1,3 @@
 (rss-stream
- "Jack Faller's Stuff" #t public-stuff
+ "Jack Faller's Posts" #t public-posts
  "All of the stuff that I've put on this site.")

@@ -3,20 +3,20 @@
 			 (ice-9 ftw)
 			 (ice-9 match)
 			 (ice-9 regex)
+			 (ice-9 popen)
 			 (ice-9 unicode)
 			 (ice-9 receive)
 			 (ice-9 hash-table)
+			 (ice-9 textual-ports)
 			 (srfi srfi-1)
 			 (srfi srfi-9)
-			 (srfi srfi-19))
+			 (srfi srfi-19)
+			 (srfi srfi-26))
 
 (set-reader! doclisp-reader)
 
 (define (cmd prog . args)
-  (let* ((pipe (apply open-pipe* OPEN_BOTH prog args))
-		 (output (read-string pipe)))
-	(close pipe)
-	output))
+  (call-with-port (apply open-pipe* OPEN_BOTH prog args) get-string-all))
 
 (define current-dir (string-append (or (getenv "THISDIR") ".") "/"))
 (define (thisdir f) (string-append current-dir f))
@@ -422,7 +422,10 @@
 	{head
 	 {title Jack Faller}
 	 {{meta {charset utf-8}}}
-	 {{link {href {join #root /style.css}} {rel stylesheet} {type text/css}}}
+	 {{link {rel stylesheet} {type text/css} {href {join #root /style.css}}}}
+	 {{link {rel alternate} {type application/rss+xml}
+			{href https://jackfaller.xyz/rss/feed}
+			{title {just Jack Faller's Posts}}}}
 	 #(and blog-name
 		   {just
 			{script const blog-name =
@@ -449,9 +452,10 @@
 ;; Remember to put .codequote on inline code blocks to avoid word breaking.
 (define (code-block file-name)
   {pre {{code {class block}}
-		#(cmd "highlight" (thisdir (string-append "posts/" file-name))
-			  "-O" "html" "--inline-css" "--fragment"
-			  "--line-numbers" "--line-number-length" "3")}})
+		{raw
+		 #(cmd "highlight" (thisdir (string-append "posts/" file-name))
+			   "-O" "html" "--inline-css" "--fragment"
+			   "--line-numbers" "--line-number-length" "3")}}})
 (define date-string-format "~Y/~m/~d ~H:~M ~z")
 (define (current-date-string) (date->string (current-date) date-string-format))
 (define (read-date-string date) (string->date date date-string-format))
@@ -558,12 +562,12 @@
   posts)
  public-posts)
 
-(define public-posts (post-like-dir "posts" "post" "Blog Post"))
+(define public-blogs (post-like-dir "posts" "post" "Blog Post"))
 (define public-thoughts (post-like-dir "thoughts" "thought" "Thought"))
-(define public-stuff (merge public-thoughts public-posts post-time->?))
+(define public-posts (merge public-thoughts public-blogs post-time->?))
 (write-posts-to-file "thoughts.html" "All Thoughts" #f public-thoughts)
-(write-posts-to-file "posts.html" "All Blog Posts" #f public-posts)
-(write-posts-to-file "stuff.html" "All Stuff" #t public-stuff)
+(write-posts-to-file "blogs.html" "All Blog Posts" #f public-blogs)
+(write-posts-to-file "posts.html" "All Posts" #t public-posts)
 
 (define stream-size 60)
 ;; Technically this is incorrect as it uses HTML rather than XML.
@@ -593,12 +597,11 @@
 			   (string-append CD-begin desc CD-end))}})
 		(at-most stream-size posts))}}})
 
-(for-each
- (lambda (dir)
-   (define ext (basename dir))
-   (for-each
-	(scheme-file-functor
-	 (lambda (name file)
-	   (write-sexp-to-html-file (string-append name "." ext) (load file doclisp-reader))))
-	(dirfiles (string-append "pages/" ext))))
- (dirfiles "pages"))
+(define (handle-pages ext path)
+  (for-each
+   (scheme-file-functor
+	(lambda (name file)
+	  (write-sexp-to-html-file (string-append path name "." ext) (load file doclisp-reader))))
+   (dirfiles (string-append "pages/" ext))))
+(handle-pages "html" "")
+(handle-pages "rss" "rss/")

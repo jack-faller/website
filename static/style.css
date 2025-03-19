@@ -99,6 +99,12 @@ h1 {
 	font-size: small;
 }
 
+p {
+	margin: 0;
+    text-indent: 1.5em;
+    text-align: justify;
+}
+
 a {
 	color: #000099;
 }

@@ -120,6 +120,7 @@
   (iterator-replace! iter (iter-cons item iter))
   item)
 
+(define (iter . args) (list->iter args))
 (define (list->iter list)
   (iterate null ((l list))
 	(if (null? l)
@@ -298,8 +299,8 @@
 (define-variadic iter-for-each for-each-case f)
 (define-variadic iter-scan scan-case f seed)
 (define-variadic iter-count count-case pred?)
-(define-variadic iter-any any-case pred?)
-(define-variadic iter-every every-case pred?)
+(define-variadic iter-any? any-case pred?)
+(define-variadic iter-every? every-case pred?)
 
 (define (iter-run it)
   (while (not (iter-null? (iter-next it)))))

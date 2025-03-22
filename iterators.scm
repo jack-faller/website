@@ -12,6 +12,7 @@
    iter-find iter-next iter-peek
 
    ;; Creation.
+   iter
    list->iter repeat-list->iter pairs->iter
    string->iter repeat-string->iter
    vector->iter repeat-vector->iter
@@ -29,7 +30,7 @@
    iter-zip
 
    ;; Collection.
-   iter-any iter-every iter-count
+   iter-any? iter-every? iter-count
    iter->string iter->list iter->vector
    iter-for-each iter-run iter-last
    iter-fold iter-reduce)

@@ -27,6 +27,6 @@
  (link-heading 2 "recent-thoughts"
 			   "Thoughts"
 			   {join #" (" {{a {href ./thoughts.html}} see all}
-					 #", " {{a {href ./blog/thoughts.rss}} RSS}
+					 #", " {{a {href ./rss/thoughts.rss}} RSS}
 					 #")"})
  {ul #@(map (post->li "." #f) (at-most 10 public-thoughts))})

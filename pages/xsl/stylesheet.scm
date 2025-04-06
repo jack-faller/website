@@ -3,7 +3,7 @@
   #(page
 	".."
 	{h1
-	 {{xsl:value-of {select /rss/channel/title}}}}
+	 RSS Feed: {{xsl:value-of {select /rss/channel/title}}}}
 	{{xsl:value-of {select /rss/channel/description}}}
 	{ul
 	 {{xsl:for-each {select /rss/channel/item}}

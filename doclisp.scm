@@ -5,9 +5,10 @@
   #:use-module (srfi srfi-13)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 rdelim)
+  #:use-module (ice-9 receive)
   #:use-module (ice-9 hash-table)
   #:use-module (ice-9 textual-ports)
-  #:export (set-reader! doclisp-reader sexp->html write-sexp->html))
+  #:export (set-reader! doclisp-reader sexp->xml write-sexp->xml xml xslt html))
 
 (define-syntax set-reader!
   (syntax-rules ()
@@ -170,18 +171,53 @@
 	  (doclisp-reader port)
 	  val))
 
-(define self-closing-html-tag?
-  (let ((tags (alist->hash-table
-			   (map (lambda (x) (cons x #t))
-					'("area" "base" "br" "col" "embed" "hr" "img" "input" "link"
-					  "meta" "param" "source" "track" "wbr" "!DOCTYPE")))))
-	(lambda (t) (hash-ref tags t))))
-
 ;; TODO: Handle character escaping.
-(define (sexp->html sexp)
+(define (sexp->xml sexp language)
   (call-with-output-string
-	(lambda (port) (write-sexp->html sexp port))))
-(define (write-sexp->html sexp port)
+	(lambda (port) (write-sexp->xml sexp language port))))
+
+(define (write-xml-tag-body body language port)
+  (unless (null? body)
+	(write-sexp->xml (car body) language port)
+	(let loop ((body (cdr body)))
+	  (cond
+	   ((null? body))
+	   ((eq? (car body) 'join)
+		(write-sexp->xml (cadr body) language port)
+		(loop (cddr body)))
+	   (else
+		(display " " port)
+		(write-sexp->xml (car body) language port)
+		(loop (cdr body)))))))
+(define (xml-tag-writer should-self-close? can-short-close?)
+  (lambda (name attributes body language port)
+	(display "<" port)
+	(display name port)
+	(for-each
+	 (lambda (i)
+	   (display " " port)
+	   (if (string? i)
+		   (display i port)
+		   (begin
+			 (display (car i) port)
+			 (display "=\"" port)
+			 (regexp-substitute/global
+			  port "\""
+			  (call-with-output-string
+				(lambda (port) (write-xml-tag-body (cdr i) language port)))
+			  'pre "&quot;" 'post)
+			 (display "\"" port))))
+	 attributes)
+	(if (and (null? body) can-short-close?)
+		(display (if should-self-close? ">" " />") port)
+		(begin
+		  (display ">" port)
+		  (write-xml-tag-body body language port)
+		  (display "</" port)
+		  (display name port)
+		  (display ">" port)))))
+
+(define (write-sexp->xml sexp language port)
   (define (write-escaped string port)
 	(define (map-match m)
 	  (case (string-ref (match:string m) 0)
@@ -189,54 +225,38 @@
 		((#\>) "&gt;")
 		((#\&) "&amp;")))
 	(regexp-substitute/global port "[<>&]" string 'pre map-match 'post))
-  (define (write-body sexp port)
-	(unless (null? sexp)
-	  (write-sexp->html (car sexp) port)
-	  (let loop ((sexp (cdr sexp)))
-		(cond
-		 ((null? sexp))
-		 ((eq? (car sexp) 'join)
-		  (write-sexp->html (cadr sexp) port)
-		  (loop (cddr sexp)))
-		 (else
-		  (display " " port)
-		  (write-sexp->html (car sexp) port)
-		  (loop (cdr sexp)))))))
   (cond
    ((or (not sexp) (null? sexp)) (display "" port))
    ((string? sexp) (write-escaped sexp port))
    ((pair? sexp)
-	(cond
-	 ((equal? (car sexp) "just") (write-body (cdr sexp) port))
-	 ((equal? (car sexp) "raw") (display (cadr sexp) port))
-	 ((equal? (car sexp) "join")
-	  (for-each (lambda (x) (write-sexp->html x port)) (cdr sexp)))
-	 (else
-	  (display "<" port)
-	  (let ((name
-			 (if (string? (car sexp))
-				 (begin (display (car sexp) port) (car sexp))
-				 (let ((name (caar sexp)) (attributes (cdar sexp)))
-				   (display name port)
-				   (for-each
-					(lambda (i)
-					   (display " " port)
-					  (if (string? i)
-						  (display i port)
-						  (begin
-							(display (car i) port)
-							(display "=\"" port)
-							(write-body (cdr i) port)
-							(display "\"" port))))
-					attributes)
-				   name))))
-		(if (and (null? (cdr sexp)) (not (equal? name "script")))
-			(display (if (self-closing-html-tag? name) ">" " />") port)
-			(begin
-			  (display ">" port)
-			  (write-body (cdr sexp) port)
-			  (display "</" port)
-			  (display name port)
-			  (display ">" port)))))))
+	(receive (name attributes body)
+		(if (string? (car sexp))
+			(values (car sexp) '() (cdr sexp))
+			(values (caar sexp) (cdar sexp) (cdr sexp)))
+	  (cond
+	   ((equal? name "just") (write-xml-tag-body body language port))
+	   ((equal? name "raw") (display (car body) port))
+	   ((equal? name "join")
+		(for-each (lambda (x) (write-sexp->xml x language port)) body))
+	   (else
+		((or (language name) (xml-tag-writer #f #t))
+		 name attributes body language port)))))
    (else
-	(error "Unexpected object in sexp->html." sexp))))
+	(error "Unexpected object in sexp->xml." sexp))))
+
+(define self-closing-html-tags
+  '("area" "base" "br" "col" "embed" "hr" "img" "input" "link" "meta" "param"
+	"source" "track" "wbr" "!DOCTYPE"))
+(define html
+  (let ((tags (alist->hash-table
+			   (cons
+				(cons "script" (xml-tag-writer #f #f))
+				(map (lambda (x) (cons x (xml-tag-writer #t #t)))
+					 self-closing-html-tags)))))
+	(lambda (name) (hash-ref tags name))))
+
+(define (xslt name)
+  (if (equal? name "!DOCTYPE")
+	  (lambda _ (values))
+	  #f))
+(define (xml name) #f)

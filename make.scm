@@ -500,9 +500,9 @@
   (let ((fname (thisdir (string-append "generated/" name))))
 	(system* "mkdir" "-p" (dirname fname))
 	fname))
-(define (write-sexp-to-html-file name sexp)
+(define (write-sexp-to-xml-file name language sexp)
   (call-with-output-file (output-file-name name)
-	(lambda (port) (write-sexp->html sexp port))))
+	(lambda (port) (write-sexp->xml sexp language port))))
 
 (define (scheme-file-functor f)
   (lambda (file)
@@ -530,8 +530,8 @@
 		 #(post-title post)}}))
 
 (define (write-posts-to-file file-name title include-type? posts)
-  (write-sexp-to-html-file
-   file-name
+  (write-sexp-to-xml-file
+   file-name html
    (page "." {h1 #title} {ul #@(map (post->li "." include-type?) posts)})))
 (define (post-like-dir dirname-plural dirname-singular post-type)
  (define posts
@@ -553,8 +553,9 @@
  (define public-posts (sort (filter post-time posts) post-time->?))
  (for-each
   (lambda (post)
-	(write-sexp-to-html-file
+	(write-sexp-to-xml-file
 	 (string-append dirname-singular "/" (post-name post) ".html")
+	 html
 	 (template
 	  ".."
 	  (cons*
@@ -579,6 +580,7 @@
   (define (rfc-822 date) (date->string date "~a, ~d ~b ~T ~z"))
   {just
    {raw #"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"}
+   {raw #"<?xml-stylesheet type=\"text/xsl\" href=\"./stylesheet.xsl\"?>"}
    {{rss {version 2.0}}
 	{channel
 	 {title #title}
@@ -595,17 +597,27 @@
 		   {pubDate #(rfc-822 (post-date post))}
 		   {description
 			#(let ((CD-begin "<![CDATA[") (CD-end "]]>")
-				   (desc (sexp->html (post-description post))))
+				   (desc (sexp->xml (post-description post) html)))
 			   (when (string-contains desc CD-end)
 				 (error "Post description contains CDATA end string:" CD-end))
 			   (string-append CD-begin desc CD-end))}})
-		(at-most stream-size posts))}}})
+		(at-most feed-size posts))}}})
 
-(define (handle-pages ext path)
+(define (xsl-document . body)
+  {just
+   {raw #"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"}
+   {{xsl:stylesheet {version 1.0} {xmlns:xsl http://www.w3.org/1999/XSL/Transform}}
+	;; Not sure if setting doctype-public to "" is valid, but it's the only way to disable quirks mode .
+	{{xsl:output {method html} {doctype-public} {encoding UTF-8} {indent yes}}}
+	#@body}})
+
+(define (handle-pages ext path language)
   (for-each
    (scheme-file-functor
 	(lambda (name file)
-	  (write-sexp-to-html-file (string-append path name "." ext) (load file doclisp-reader))))
+	  (write-sexp-to-xml-file (string-append path name "." ext) language
+							  (load file doclisp-reader))))
    (dirfiles (string-append "pages/" ext))))
-(handle-pages "html" "")
-(handle-pages "rss" "rss/")
+(handle-pages "html" "" html)
+(handle-pages "rss" "rss/" xml)
+(handle-pages "xsl" "rss/" xslt)

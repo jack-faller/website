@@ -423,9 +423,12 @@
 	 {title Jack Faller}
 	 {{meta {charset utf-8}}}
 	 {{link {rel stylesheet} {type text/css} {href {join #root /style.css}}}}
-	 {{link {rel alternate} {type application/rss+xml}
-			{href https://jackfaller.xyz/rss/feed}
-			{title {just Jack Faller's Posts}}}}
+	 #@(map
+		(lambda (feed name)
+		  {{link {rel alternate} {type application/rss+xml}
+				 {href https://jackfaller.xyz/rss/#feed}
+				 {title {just Jack Faller's #name}}}})
+		{posts blogs thoughts} {Posts Blogs Thoughts})
 	 #(and blog-name
 		   {just
 			{script const blog-name =
@@ -569,9 +572,10 @@
 (write-posts-to-file "blogs.html" "All Blog Posts" #f public-blogs)
 (write-posts-to-file "posts.html" "All Posts" #t public-posts)
 
-(define stream-size 60)
+(define feed-size 60)
 ;; Technically this is incorrect as it uses HTML rather than XML.
-(define (rss-stream title include-type? posts description)
+;; TODO: RSS pagination.
+(define (rss-feed title include-type? posts description)
   (define (rfc-822 date) (date->string date "~a, ~d ~b ~T ~z"))
   {just
    {raw #"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"}

@@ -50,24 +50,27 @@
 
 (define (delimited-read end port table join?)
   (iter->list
-   (iterate null ((first? #t))
+   (iterate null recur ((first? #t))
 	 (let* ((dropped-space? (drop-space port))
 			(peeked (peek-char port)))
 	   (cond
 		((eof-object? peeked) (error "Missing closing delimiter."))
 		((eq? peeked end) (read-char port) (null))
 		((or dropped-space? (not join?) first?)
-		 (values (table-read port table) #f))
+		 (let ((result (table-read port table)))
+		   (if (eq? result comment)
+			   (recur #f)
+			   (values result #f))))
 		(else (values 'join #t)))))))
 
 (define (table-read port table)
   (drop-space port)
-  (let* ((peeked (peek-char port))
-		 (fun (hashq-ref table peeked)))
-	(cond
-	 ((eof-object? peeked) peeked)
-	 (fun (read-char port) (fun port table))
-	 (else ((hashq-ref table 'atom) port table)))))
+  (define peeked (peek-char port))
+  (define fun (hashq-ref table peeked))
+  (cond
+   ((eof-object? peeked) peeked)
+   (fun (read-char port) (fun port table))
+   (else ((hashq-ref table 'atom) port table))))
 
 (define comment (substring/copy "comment" 0))
 (define (list-syntax-pair start end)

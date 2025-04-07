@@ -415,14 +415,14 @@
    note-ref
    format-notes))
 
-(define* (template root body #:key (blog-name #f) (date #f) (wants-back-arrow? #t))
+(define* (template body #:key (blog-name #f) (date #f) (wants-back-arrow? #t))
   {just
    {{!DOCTYPE html}}
    {html
 	{head
 	 {title Jack Faller}
 	 {{meta {charset utf-8}}}
-	 {{link {rel stylesheet} {type text/css} {href {join #root /style.css}}}}
+	 {{link {rel stylesheet} {type text/css} {href {absolute-path /style.css}}}}
 	 #@(map
 		(lambda (feed name)
 		  {{link {rel alternate} {type application/rss+xml}
@@ -438,7 +438,7 @@
 	 {main
 	  {header
 	   #(and wants-back-arrow?
-			 {{a {href {join #root /index.html}} {title home} {class backarrow}} ←})
+			 {{a {href {absolute-path /index.html}} {title home} {class backarrow}} ←})
 	   #(cond
 		 (date {{div {class date}} #(date-format date)})
 		 (blog-name {{div {class date}} DRAFT})
@@ -473,6 +473,14 @@
 					  (else "th"))))
    (date->string date " ~B ~Y")))
 
+(define (language-extend language path-to-root)
+  (lambda (name)
+	(if (equal? name "absolute-path")
+		(lambda (name attributes body language port)
+		  (display path-to-root port)
+		  (write-xml-tag-body body language port))
+		(language name))))
+
 (define-record-type <post>
   (make-post name type dir title time date description body)
   post?
@@ -484,25 +492,35 @@
   (date         post-date         post-date!)
   (description  post-description  post-description!)
   (body         post-body         post-body!))
-(define (post-link root post)
-  (string-append root "/" (post-dir post) "/" (post-name post) ".html"))
+(define (post-path post)
+  (string-append "/" (post-dir post) "/" (post-name post) ".html"))
 
 (define (post title date description . body)
   (let* ((date (and date (read-date-string date)))
 		 (sort (and date (date->time-tai date))))
 	(make-post #f #f #f title sort date description body)))
 
-(define (page root . body) (template root body))
-(define (home-page . body) (template "." body #:wants-back-arrow? #f))
+(define (page . body) (template body))
+(define (home-page . body) (template body #:wants-back-arrow? #f))
 
 (system* "rm" "-rf" (thisdir "generated"))
 (define (output-file-name name)
   (let ((fname (thisdir (string-append "generated/" name))))
 	(system* "mkdir" "-p" (dirname fname))
 	fname))
+(define (output-file-path-to-root name)
+  (with-output-to-string
+	(lambda ()
+	  (display ".")
+	  (string-for-each
+	   (lambda (c)
+		 (when (char=? c #\/) (display "/..")))
+	   name))))
+
 (define (write-sexp-to-xml-file name language sexp)
+  (define language* (language-extend language (output-file-path-to-root name)))
   (call-with-output-file (output-file-name name)
-	(lambda (port) (write-sexp->xml sexp language port))))
+	(lambda (port) (write-sexp->xml sexp language* port))))
 
 (define (scheme-file-functor f)
   (lambda (file)
@@ -521,9 +539,9 @@
 (define note #f)
 (define note-ref #f)
 (define (post-time->? a b) (time>? (post-time a) (post-time b)))
-(define (post->li root include-type?)
+(define (post->li include-type?)
   (lambda (post)
-	{li {{a {href #(post-link root post)}}
+	{li {{a {href {absolute-path #(post-path post)}}}
 		 #(date->string (post-date post) "~y/~m/~d")
 		 #(and include-type? {just – #(post-type post)})
 		 –
@@ -532,7 +550,7 @@
 (define (write-posts-to-file file-name title include-type? posts)
   (write-sexp-to-xml-file
    file-name html
-   (page "." {h1 #title} {ul #@(map (post->li "." include-type?) posts)})))
+   (page {h1 #title} {ul #@(map (post->li include-type?) posts)})))
 (define (post-like-dir dirname-plural dirname-singular post-type)
  (define posts
    (filter-map
@@ -557,7 +575,6 @@
 	 (string-append dirname-singular "/" (post-name post) ".html")
 	 html
 	 (template
-	  ".."
 	  (cons*
 	   {h1 #(post-title post)}
 	   {p #(post-description post)}
@@ -593,11 +610,13 @@
 		   {title
 			#(and include-type? {just #(post-type post) –})
 		  	#(post-title post)}
-		   {link #(post-link "https://jackfaller.xyz" post)}
+		   {link "https://jackfaller.xyz"#(post-path post)}
 		   {pubDate #(rfc-822 (post-date post))}
 		   {description
 			#(let ((CD-begin "<![CDATA[") (CD-end "]]>")
-				   (desc (sexp->xml (post-description post) html)))
+				   (desc (sexp->xml
+						  (post-description post)
+						  (language-extend html "https://jackfaller.xyz"))))
 			   (when (string-contains desc CD-end)
 				 (error "Post description contains CDATA end string:" CD-end))
 			   (string-append CD-begin desc CD-end))}})
@@ -615,8 +634,8 @@
   (for-each
    (scheme-file-functor
 	(lambda (name file)
-	  (write-sexp-to-xml-file (string-append path name "." ext) language
-							  (load file doclisp-reader))))
+	  (write-sexp-to-xml-file
+	   (string-append path name "." ext) language (load file doclisp-reader))))
    (dirfiles (string-append "pages/" ext))))
 (handle-pages "html" "" html)
 (handle-pages "rss" "rss/" xml)

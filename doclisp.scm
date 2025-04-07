@@ -8,7 +8,8 @@
   #:use-module (ice-9 receive)
   #:use-module (ice-9 hash-table)
   #:use-module (ice-9 textual-ports)
-  #:export (set-reader! doclisp-reader sexp->xml write-sexp->xml xml xslt html))
+  #:export (set-reader! doclisp-reader sexp->xml write-sexp->xml xml xslt html
+						write-xml-tag-body xml-tag-writer))
 
 (define-syntax set-reader!
   (syntax-rules ()

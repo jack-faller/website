@@ -17,16 +17,16 @@
 			   {join #" (" {{a {href ./posts.html}} see all}
 					 #", " {{a {href ./rss/posts.rss}} RSS}
 					 #")"})
- {ul #@(map (post->li "." #t) (at-most 10 public-posts))}
+ {ul #@(map (post->li #t) (at-most 10 public-posts))}
  (link-heading 2 "recent-blog"
 			   "Blog"
 			   {join #" (" {{a {href ./blogs.html}} see all}
 					 #", " {{a {href ./rss/blogs.rss}} RSS}
 					 #")"})
- {ul #@(map (post->li "." #f) (at-most 10 public-blogs))}
+ {ul #@(map (post->li #f) (at-most 10 public-blogs))}
  (link-heading 2 "recent-thoughts"
 			   "Thoughts"
 			   {join #" (" {{a {href ./thoughts.html}} see all}
 					 #", " {{a {href ./rss/thoughts.rss}} RSS}
 					 #")"})
- {ul #@(map (post->li "." #f) (at-most 10 public-thoughts))})
+ {ul #@(map (post->li #f) (at-most 10 public-thoughts))})

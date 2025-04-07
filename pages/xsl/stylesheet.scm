@@ -1,7 +1,6 @@
 (xsl-document
  {{xsl:template {match /}}
   #(page
-	".."
 	{h1
 	 RSS Feed: {{xsl:value-of {select /rss/channel/title}}}}
 	{{xsl:value-of {select /rss/channel/description}}}

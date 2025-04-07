@@ -120,5 +120,11 @@
   For most values of P, the −0.5 offset of the graph is negligible.
   It only becomes relevant where P is close to 1, in which case the 0.7x estimate from earlier is inaccurate.
   The estimate is also inaccurate for choices of x close to 1, i.e. high certainty events.
-  This isn't an issue for reciprocal probabilities, where 2 is the highest value used, but for other values of x between 1 and 2 (corresponding to events with more than a 50% likelihood) the estimation is very inaccurate.
-  Luckily its also not very useful for those values as they are very likely after only a single repeat.})
+  This isn't an issue for reciprocal probabilities, where 1/2 is the highest probability used, but for other values of x between 1 and 2 (corresponding to events with more than a 50% likelihood) the estimation is very inaccurate.
+  Luckily its also not very useful for those values as they are very likely after only a single repeat.}
+ {p
+  This is perhaps the finest example of the difference between the median and the mean.
+  The mean time for an event to happen is x tries, but the median is 0.7x.
+  The mean gives undue weighting to those rare cases where an event occurs a long time after you begin trying.
+  So in a sense, the original approximation isn't incorrect.
+  You will have to wait an average of x tries for the event to occur, but your median wait is 0.7x.})

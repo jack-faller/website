@@ -616,6 +616,7 @@
 		  	#(post-title post)}
 		   {link "https://jackfaller.xyz"#(post-path post)}
 		   {pubDate #(rfc-822 (post-date post))}
+		   {generator Doclisp}
 		   {description {#(escaped html) #@(post-description post)}}})
 		(at-most feed-size posts))}}})
 

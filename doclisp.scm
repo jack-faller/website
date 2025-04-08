@@ -9,11 +9,10 @@
   #:use-module (ice-9 receive)
   #:use-module (ice-9 textual-ports)
   #:export (set-reader! doclisp-reader write-form write-forms
-						make-language
+						make-escaper escaper? escaper-hash-table escaper-write
+						make-language language?
 						language-write-tag
-						language-escaped-map
-						language-unescaped-map
-						language-newline
+						language-escaper language-unescaper language-newline
 						language-augment language-write-escaped language-write-unescaped
 						xml html escaped xslt))
 
@@ -212,20 +211,11 @@
 		  (put name port)
 		  (put ">" port)))))
 
-(define-record-type <language>
-  (make-language* newline unescaped-map escaped-map unescaped-rx escaped-rx write-tag)
-  language?
-  ;; (newline)
-  (newline language-newline)
-  ;; Hash maps from strings to their escaped version.
-  (escaped-map language-escaped-map)
-  (unescaped-map language-unescaped-map)
-  ;; Compiled regular expressions which match the keys of the above maps.
-  (escaped-rx language-escaped-rx)
-  (unescaped-rx language-unescaped-rx)
-  ;; (write-tag name attributes body language port)
-  (write-tag language-write-tag))
-
+(define-record-type <escaper>
+  (make-escaper* hash-table regexp)
+  escaper?
+  (hash-table escaper-hash-table)
+  (regexp escaper-regexp))
 (define (key-regexp hash-table)
   (if (= 0 (hash-table-size hash-table))
 	  #f
@@ -239,47 +229,49 @@
 						(set! sep "|")
 						(display (regexp-quote key) port)))))))
 		(make-regexp rx regexp/extended))))
-(define (make-language newline unescaped-map escaped-map write-tag)
-  (make-language*
-   newline unescaped-map escaped-map
-   (key-regexp unescaped-map)
-   (key-regexp escaped-map)
-   write-tag))
-
-(define* (language-augment language #:key newline unescaped-map escaped-map write-tag)
-  (make-language
-   (or newline (language-newline language))
-   (or unescaped-map (language-unescaped-map language))
-   (or escaped-map (language-escaped-map language))
-   (or write-tag (language-write-tag language))))
-
-(define (write-mapped string rx map port)
+(define (make-escaper hash-table)
+  (make-escaper* hash-table (key-regexp hash-table)))
+(define (escaper-write escaper string port)
+  (define rx (escaper-regexp escaper))
   (define (map-match m)
-	(hash-table-ref map (match:substring m)))
+	(hash-table-ref (escaper-hash-table escaper) (match:substring m)))
   (if rx
 	  (regexp-substitute/global port rx string 'pre map-match 'post)
 	  (display string port)))
+
+(define-record-type <language>
+  (make-language newline unescaper escaper write-tag)
+  language?
+  ;; (newline)
+  (newline language-newline)
+  (unescaper language-unescaper)
+  (escaper language-escaper)
+  ;; (write-tag name attributes body language port)
+  (write-tag language-write-tag))
+
+
+(define* (language-augment language #:key newline unescaper escaper write-tag)
+  (make-language
+   (or newline (language-newline language))
+   (or unescaper (language-unescaper language))
+   (or escaper (language-escaper language))
+   (or write-tag (language-write-tag language))))
+
+
 (define (language-write-unescaped language string port)
-  (write-mapped
-   string
-   (language-unescaped-rx language)
-   (language-unescaped-map language)
-   port))
+  (escaper-write (language-unescaper language) string port))
 (define (language-write-escaped language string port)
-  (write-mapped
-   string
-   (language-escaped-rx language)
-   (language-escaped-map language)
-   port))
+  (escaper-write (language-escaper language) string port))
 
 (define xml
   (make-language
    newline
-   (alist->hash-table '())
-   (alist->hash-table
-	'(("<" . "&lt;")
-	  (">" . "&gt;")
-	  ("&" . "&amp;")))
+   (make-escaper (alist->hash-table '()))
+   (make-escaper
+	(alist->hash-table
+	 '(("<" . "&lt;")
+	   (">" . "&gt;")
+	   ("&" . "&amp;"))))
    (let ((tag (xml-tag-writer)))
 	 (lambda (name attributes body language port)
 	   (cond
@@ -315,21 +307,22 @@
 	   (unless (string-ci= name "!DOCTYPE")
 		 (parent name attributes body language form))))))
 (define (escaped language)
-  (define old-escaped (language-escaped-map language))
+  (define old-escaper (language-escaper language))
   (language-augment
    language
-   #:unescaped-map old-escaped
-   #:escaped-map
-   (let ((out (hash-table-copy old-escaped)))
-	 (hash-table-walk
-	  old-escaped
-	  (lambda (key value)
-		(hash-table-set!
-		 out key
-		 (call-with-output-string
-		   (lambda (port)
-			 (language-write-escaped language value port))))))
-	 out)))
+   #:unescaper old-escaper
+   #:escaper
+   (make-escaper
+	(let ((out (hash-table-copy (escaper-hash-table old-escaper))))
+	  (hash-table-walk
+	   (escaper-hash-table old-escaper)
+	   (lambda (key value)
+		 (hash-table-set!
+		  out key
+		  (call-with-output-string
+			(lambda (port)
+			  (escaper-write old-escaper value port))))))
+	  out))))
 
 (define (write-forms forms language port)
   (unless (null? forms)
@@ -360,4 +353,3 @@
 	  (if (procedure? name)
 		  (name attributes body language port)
 		  ((language-write-tag language) name attributes body language port))))))
-

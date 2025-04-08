@@ -24,7 +24,16 @@ The function ~dl-load~ will load a file using ~doclisp-reader~, which is a funct
 Within curly braces, all ordinary syntax is disabled and text is split by spaces then converted to strings. (As a result of this, white-space is not significant.) Curly braces can be nested without causing issues with quoting. The macros ~#~ and ~#@~ are the equivalent of ~​,​~ and ~​,@​~ from ~quasiquote~, they will read an ordinary scheme form put the result of evaluating it into the list. Comments will still work within the curly braces. The unquoting ~#~ can also be used to escape these characters unquoting a string literal.
 ** Escaping
 When the doclisp reader encounters a ~\~ (backslash) character, it will treat the subsequent character literally. This can be used to write special charters (eg ~{}#\;~) into symbols.
-** Converting to HTML
+** Out Of Date Documentation
+This documentation is out of date.
+It is mostly sill relevant if you define the following function:
+#+begin_src scheme
+  (define (sexp->html sexp)
+    (call-with-output-string
+      (lambda (port)
+        (write-form sexp html port))))
+#+end_src
+*** Converting to HTML
 The function ~sexp->html~ converts a tree of strings to a string of HTML. The basic syntax used is to take the head of the list and use that as an HTML tag, then join the rest of the list with spaces and put those in the body of the tag.
 Escape characters are not yet dealt with, so they will need to be replaced with the corresponding entity when they appear.
 #+begin_src scheme
@@ -38,7 +47,7 @@ The result of this conversion is inserted directly after the attribute and surro
   (sexp->html {{script {src /path/to/script name} defer}})
   ;; => <script src="/path/to/script name" defer></script>
 #+end_src
-*** Special Tags
+**** Special Tags
 If the tag is ~just~, then the body will not be surrounded by a tag. ~join~ is similar, but the body will not have spaces added between its elements.
 #+begin_src scheme
   (sexp->html {just Paragraph with {join super {sup script}}.})
@@ -49,15 +58,15 @@ These can both be escaped using the attribute syntax without listing any attribu
   (sexp->html {{just} Paragraph with {{join} super {sup script}}.})
   ;; => <just>Paragraph with <join>super <sup>script</sup></join></just>
 #+end_src
-*** Implicit Join
-The symbol ~join~ is inserted into Doclisp code automatically when forms touch in a list not separated by space. Hence, the following are equivalent.
+**** Implicit Join
+The symbol ~join~ is inserted into Doclisp code automatically when forms touch in a list not separated by space. Hence, the following are equivalent:
 #+begin_src scheme
   {p Paragraph with {b bold text}.}
   {p Paragraph with {b bold text} #'join .}
   `("p" "Paragraph" "with" ("b" "bold" "text") ,'join ".")
 #+end_src
 This inserted join will also inhibit the implicit inserting of spaces. Without this, there would be an unwanted space between the "." and the bold text.
-*** Ignored Values
+**** Ignored Values
 ~#f~ is ignored and will not have spaces inserted on either side of this it. I personally find it nicer than splicing an empty list if you want to include content conditionally.
 #+begin_src scheme
   {p Example of conditional content: #(and include-content? {just content})}

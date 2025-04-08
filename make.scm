@@ -474,12 +474,16 @@
    (date->string date " ~B ~Y")))
 
 (define (language-extend language path-to-root)
-  (lambda (name)
-	(if (equal? name "absolute-path")
-		(lambda (name attributes body language port)
-		  (display path-to-root port)
-		  (write-xml-tag-body body language port))
-		(language name))))
+  (define parent (language-write-tag language))
+  (language-augment
+   language
+   #:write-tag
+   (lambda (name attributes body language port)
+	 (if (equal? name "absolute-path")
+		 (begin
+		   (language-write-escaped language path-to-root port)
+		   (write-forms body language port))
+		 (parent name attributes body language port)))))
 
 (define-record-type <post>
   (make-post name type dir title time date description body)
@@ -498,7 +502,7 @@
 (define (post title date description . body)
   (let* ((date (and date (read-date-string date)))
 		 (sort (and date (date->time-tai date))))
-	(make-post #f #f #f title sort date description body)))
+	(make-post #f #f #f title sort date (list description) body)))
 
 (define (page . body) (template body))
 (define (home-page . body) (template body #:wants-back-arrow? #f))
@@ -517,10 +521,10 @@
 		 (when (char=? c #\/) (display "/..")))
 	   name))))
 
-(define (write-sexp-to-xml-file name language sexp)
+(define (write-form-to-file name language sexp)
   (define language* (language-extend language (output-file-path-to-root name)))
   (call-with-output-file (output-file-name name)
-	(lambda (port) (write-sexp->xml sexp language* port))))
+	(lambda (port) (write-form sexp language* port))))
 
 (define (scheme-file-functor f)
   (lambda (file)
@@ -548,7 +552,7 @@
 		 #(post-title post)}}))
 
 (define (write-posts-to-file file-name title include-type? posts)
-  (write-sexp-to-xml-file
+  (write-form-to-file
    file-name html
    (page {h1 #title} {ul #@(map (post->li include-type?) posts)})))
 (define (post-like-dir dirname-plural dirname-singular post-type)
@@ -571,13 +575,13 @@
  (define public-posts (sort (filter post-time posts) post-time->?))
  (for-each
   (lambda (post)
-	(write-sexp-to-xml-file
+	(write-form-to-file
 	 (string-append dirname-singular "/" (post-name post) ".html")
 	 html
 	 (template
 	  (cons*
 	   {h1 #(post-title post)}
-	   {p #(post-description post)}
+	   {p #@(post-description post)}
 	   (post-body post))
 	  #:blog-name (post-name post) #:date (post-date post))))
   posts)
@@ -612,14 +616,7 @@
 		  	#(post-title post)}
 		   {link "https://jackfaller.xyz"#(post-path post)}
 		   {pubDate #(rfc-822 (post-date post))}
-		   {description
-			#(let ((CD-begin "<![CDATA[") (CD-end "]]>")
-				   (desc (sexp->xml
-						  (post-description post)
-						  (language-extend html "https://jackfaller.xyz"))))
-			   (when (string-contains desc CD-end)
-				 (error "Post description contains CDATA end string:" CD-end))
-			   (string-append CD-begin desc CD-end))}})
+		   {description {#(escaped html) #@(post-description post)}}})
 		(at-most feed-size posts))}}})
 
 (define (xsl-document . body)
@@ -634,7 +631,7 @@
   (for-each
    (scheme-file-functor
 	(lambda (name file)
-	  (write-sexp-to-xml-file
+	  (write-form-to-file
 	   (string-append path name "." ext) language (load file doclisp-reader))))
    (dirfiles (string-append "pages/" ext))))
 (handle-pages "html" "" html)

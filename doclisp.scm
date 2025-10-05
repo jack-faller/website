@@ -128,8 +128,8 @@
 
 (define curly-read-table
   (alist->hash-table
-   `((#\( ly-raw clojure-map (. (\, (lambda (port table)
-                                      (delimited-read #\} port curly-read-table #t)))))
+   `((#\{ . ,(lambda (port table)
+               (delimited-read #\} port curly-read-table #t)))
      ,comment-reader-pair
      (#\} . ,(lambda _ (error "Unexpected closing delimiter" #\})))
      (#\# . ,(lambda (port table)
@@ -138,28 +138,29 @@
                           (drop-block-comment port)
                           (table-read port table))
                    (unquote-reader port default-read-table))))
-     (atom . (\, (lambda (port table)
-                   (define pos (port-position port))
-                   (datum->syntax #f (read-atom port table) #:source pos)))))
+     (atom . ,(lambda (port table)
+                (define pos (port-position port))
+                (datum->syntax #f (read-atom port table) #:source pos))))
    eq? hash-by-identity))
 (define default-read-table
   (alist->hash-table
-   `((atom . (\, (lambda (port table)
-                   (if (eq? (peek-char port) #\")
-                       (read-syntax port)
-                       (let ((pos (port-position port)))
-                         (datum->syntax
-                          #f
-                          (call-with-input-string (read-atom port table) read)
-                          #:source pos))))))
+   `((atom
+      . ,(lambda (port table)
+         (if (eq? (peek-char port) #\")
+             (read-syntax port)
+             (let ((pos (port-position port)))
+               (datum->syntax
+                #f
+                (call-with-input-string (read-atom port table) read)
+                #:source pos)))))
      ,(list-syntax-pair #\( #\))
      ,(list-syntax-pair #\[ #\])
      ,(quote-syntax-pair #\' 'quote)
      ,(quote-syntax-pair #\` 'quasiquote)
      (#\, . ,unquote-reader)
-     (#\( ly-raw clojure-map (. (\, (lambda (port table)
-                                      (cons 'quasiquote
-                                            (list (delimited-read #\} port curly-read-table #t)))))))
+     (#\{ . ,(lambda (port table)
+               (cons 'doclisp-quasiquote
+                     (list (delimited-read #\} port curly-read-table #t)))))
      ,comment-reader-pair
      (#\# . ,(lambda (port table)
                (case (peek-char port)
@@ -173,7 +174,7 @@
                   (read port)))))
      ,@(map (lambda (a)
               (cons a (lambda _ (error "Unexpected closing delimiter" a))))
-            '(#\) #\)) #\}))
+            '(#\) #\) #\})))
    eq? hash-by-identity))
 
 (define (doclisp-reader port)

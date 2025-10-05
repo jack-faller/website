@@ -7,9 +7,12 @@ To send data to the server in ~server-url.txt~, overwriting its ~/data~ director
 * Doclisp
 The doclisp file defines a special syntax for reading scheme code and a function for converting S-expressions to HTML.
 ** Usage
-At present =doclisp.scm= will automatically load the file =make.scm= with the correct reader as this is the easiest way to set the reader in a file.
+Doclisp has a handy macro to set the reader.
+#+begin_src emacs-lisp
+  (set-reader! doclisp-reader)
+#+end_src
 ** Reader
-The function ~dl-load~ will load a file using ~doclisp-reader~, which is a function similar to the built in ~read~ but has additional syntax for writing text using curly brackets. Below is a demonstration of this syntax and what it maps to in normal scheme.
+~doclisp-reader~ is a function similar to the built in ~read~ but has additional syntax for writing text using curly brackets. Below is a demonstration of this syntax and what it maps to in normal scheme.
 #+begin_src scheme
   {a {b} ('`,c. ) #d #"#;," #@e}
   ;; is the same as

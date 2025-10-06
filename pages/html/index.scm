@@ -17,6 +17,12 @@
    {li {b Thoughts}: {{a {href \#heading-recent-thoughts}} recent}, {{a {href ./thoughts.html}} see all}, {{a {href ./rss/thoughts.rss}} RSS}}
    {li {b Github}: {{a {href https://github.com/jack-faller}} github.com/jack-faller}}
    {li {b Email}: {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
-  #(link-heading
-    2 "posts" "Posts" {join #" (" {{a {href ./atom.xml}} full feed} #")"})
-  {ul #@(iter:to-list! (iter:map (post->li #t) (iter:take 30 (iter:from-list (fluid-ref public-posts)))))}}}
+  {h2
+   {{a {href ./atom.xml} {class headinglink}}
+    Posts
+    {{img {src /feed-icon.svg}
+          {style height: 0.75em\; position: relative\; top: 0.05em\;}
+          {alt logo used to represent RSS and ATOM feeds}}}}}
+  {ul
+   #@(iter:to-list! (iter:map (post->li #t) (iter:take 30 (iter:from-list (fluid-ref public-posts)))))
+   {li {{a {href ./atom.xml}} See more …}}}}}

@@ -13,7 +13,7 @@
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-19)
   #:use-module (srfi srfi-26)
-  #:export (build))
+  #:export (build template page link-heading math math-block math-rewrite public-posts post->li))
 
 (set-reader! doclisp-reader)
 
@@ -496,9 +496,10 @@
          (parent name attributes body language port)))))
 
 (define-record-type <post>
-  (make-post name type dir title time date description body)
+  (make-post name uuid type dir title time date description body)
   post?
   (name         post-name         post-name!)
+  (uuid         post-uuid         post-uuid!)
   (type         post-type         post-type!)
   (dir          post-dir          post-dir!)
   (time         post-time         post-time!)
@@ -509,13 +510,7 @@
 (define (post-path post)
   (string-append "/" (post-dir post) "/" (post-name post) ".html"))
 
-(define (post title date description . body)
-  (let* ((date (and date (read-date-string date)))
-         (sort (and date (date->time-tai date))))
-    (make-post #f #f #f title sort date (list description) body)))
-
 (define (page . body) (template body))
-(define (home-page . body) (template body #:wants-back-arrow? #f))
 
 (define (output-file-path-to-root name)
   (with-output-to-string
@@ -542,9 +537,6 @@
    (scandir (input-file dir)
             (lambda (file) (not (or (string= file ".") (string= file "..")))))))
 
-(define (at-most n list)
-  (take list (min n (length list))))
-
 (define note #f)
 (define note-ref #f)
 (define (post-time->? a b) (time>? (post-time a) (post-time b)))
@@ -555,7 +547,7 @@
          #(post-date-y/m/d post)
          #(and include-type? {just – #(post-type post)})
          –
-         #(post-title post)}}))
+         #@(post-title post)}}))
 
 (define (post-like-dir dirname-plural dirname-singular post-type)
  (define posts
@@ -565,14 +557,24 @@
        (receive (n nr format-notes) (footnotes)
          (set! note n)
          (set! note-ref nr)
-         (let ((p (load file doclisp-reader)))
-           (post-name! p name)
-           (post-body! p `(,@(post-body p) ,(format-notes)))
-           (post-type! p post-type)
-           (post-dir! p dirname-singular)
+         (let*
+             ((post (cdr (load file)))
+              (date (assoc-ref post "date"))
+              (date (and date (read-date-string (car date))))
+              (time (and date (date->time-tai date)))
+              (post (make-post
+                     name
+                     (car (assoc-ref post "uuid"))
+                     post-type
+                     dirname-singular
+                     (assoc-ref post "title")
+                     time
+                     date
+                     (assoc-ref post "description")
+                     {#@(or (assoc-ref post "body") '()) #(format-notes)})))
            (set! note #f)
            (set! note-ref #f)
-           p))))
+           post))))
     (dirfiles dirname-plural)))
  (define public-posts (sort (filter post-time posts) post-time->?))
  (for-each
@@ -582,7 +584,7 @@
      html
      (template
       (cons*
-       {h1 #(post-title post)}
+       {h1 #@(post-title post)}
        {p #@(post-description post)}
        (post-body post))
       #:blog-name (post-name post) #:date (post-date post))))
@@ -626,24 +628,23 @@
     #@(map
        (lambda (post)
          {entry
-          {{title {type text}} #(post-title post)}
+          {{title {type text}} #@(post-title post)}
           {{content {type text/html}
                     {src https://jackfaller.xyz#(post-path post)}}}
           {published #(format-date (post-date post))}
           #common
           {{category {term #(post-type post)} {label #(post-dir post)}}}
-          ;; TODO: add uuid to posts
-          {id https://jackfaller.xyz#(post-path post)}
+          {id #(post-uuid post)}
           {{summary {type xhtml}} #@(post-description post)}
           {j:date #(post-date-y/m/d post)}})
        posts)}})
 
-(define (handle-pages ext path language)
+(define (handle-pages ext path language loader)
   (for-each
    (scheme-file-functor
     (lambda (name file)
       (write-form-to-file
-       (string-append path name "." ext) language (load file doclisp-reader))))
+       (string-append path name "." ext) language (loader file))))
    (dirfiles (string-append "pages/" ext))))
 
 (define public-posts (make-fluid))
@@ -656,8 +657,16 @@
   (define public-thoughts (post-like-dir "thoughts" "thought" "Thought"))
   (fluid-set! public-posts (merge public-thoughts public-blogs post-time->?))
 
-  (handle-pages "html" "" html)
-  (handle-pages "xsl" "" xslt)
+  (handle-pages "html" "" html
+                (lambda (file)
+                  (define content (cdr (load file)))
+                  (template
+                   (assoc-ref content "body")
+                   #:wants-back-arrow?
+                   (car (or (assoc-ref content "wants-back-arrow?") '(#t))))))
+  (handle-pages "xsl" "" xslt
+                (lambda (file)
+                  (cons "just" (assoc-ref (cdr (load file)) "body"))))
   ;; TODO: archives.
   (write-form-to-file
    "atom.xml" xml

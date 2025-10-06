@@ -134,6 +134,9 @@ code {
 math {
 	font-family: STIXTwoMath;
 }
+.no-bullet {
+    padding: 0;
+}
 .no-bullet li {
     list-style-type: none;
 }

@@ -13,20 +13,6 @@
   {li {b Github}: {{a {href https://github.com/jack-faller}} github.com/jack-faller}}
   {li {b Email}: {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
  (link-heading 2 "posts"
-			   "Posts"
-			   {join #" (" {{a {href ./posts.html}} see all}
-					 #", " {{a {href ./rss/posts.rss}} RSS}
-					 #")"})
- {ul #@(map (post->li #t) (at-most 10 public-posts))}
- (link-heading 2 "recent-blog"
-			   "Blog"
-			   {join #" (" {{a {href ./blogs.html}} see all}
-					 #", " {{a {href ./rss/blogs.rss}} RSS}
-					 #")"})
- {ul #@(map (post->li #f) (at-most 10 public-blogs))}
- (link-heading 2 "recent-thoughts"
-			   "Thoughts"
-			   {join #" (" {{a {href ./thoughts.html}} see all}
-					 #", " {{a {href ./rss/thoughts.rss}} RSS}
-					 #")"})
- {ul #@(map (post->li #f) (at-most 10 public-thoughts))})
+               "Posts"
+               {join #" (" {{a {href ./atom.xml}} full feed} #")"})
+ {ul #@(map (post->li #t) (at-most 10 public-posts))})

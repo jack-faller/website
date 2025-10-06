@@ -424,12 +424,9 @@
      {title Jack Faller}
      {{meta {charset utf-8}}}
      {{link {rel stylesheet} {type text/css} {href {absolute-path /style.css}}}}
-     #@(map
-        (lambda (feed name)
-          {{link {rel alternate} {type application/rss+xml}
-                 {href https://jackfaller.xyz/rss/#feed}
-                 {title {just Jack Faller's #name}}}})
-        {posts blogs thoughts} {Posts Blogs Thoughts})
+     {{link {rel alternate} {type application/atom+xml}
+            {href https://jackfaller.xyz/atom.xml}
+            {title {just Jack Faller}}}}
      #(and blog-name
            {just
             {script const blog-name =
@@ -544,18 +541,15 @@
 (define note #f)
 (define note-ref #f)
 (define (post-time->? a b) (time>? (post-time a) (post-time b)))
+(define (post-date-y/m/d post) (date->string (post-date post) "~y/~m/~d"))
 (define (post->li include-type?)
   (lambda (post)
     {li {{a {href {absolute-path #(post-path post)}}}
-         #(date->string (post-date post) "~y/~m/~d")
+         #(post-date-y/m/d post)
          #(and include-type? {just – #(post-type post)})
          –
          #(post-title post)}}))
 
-(define (write-posts-to-file file-name title include-type? posts)
-  (write-form-to-file
-   file-name html
-   (page {h1 #title} {ul #@(map (post->li include-type?) posts)})))
 (define (post-like-dir dirname-plural dirname-singular post-type)
  (define posts
    (filter-map
@@ -591,43 +585,55 @@
 (define public-blogs (post-like-dir "posts" "post" "Blog Post"))
 (define public-thoughts (post-like-dir "thoughts" "thought" "Thought"))
 (define public-posts (merge public-thoughts public-blogs post-time->?))
-(write-posts-to-file "thoughts.html" "All Thoughts" #f public-thoughts)
-(write-posts-to-file "blogs.html" "All Blog Posts" #f public-blogs)
-(write-posts-to-file "posts.html" "All Posts" #t public-posts)
 
-(define feed-size 60)
-;; Technically this is incorrect as it uses HTML rather than XML.
-;; TODO: RSS pagination.
-(define (rss-feed title include-type? posts description)
-  (define (rfc-822 date) (date->string date "~a, ~d ~b ~T ~z"))
-  {just
-   {raw #"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"}
-   {raw #"<?xml-stylesheet type=\"text/xsl\" href=\"./stylesheet.xsl\"?>"}
-   {{rss {version 2.0}}
-    {channel
-     {title #title}
-     {link https://jackfaller.xyz/}
-     {description #description}
-     {lastBuildDate #(rfc-822 (current-date))}
-     #@(map
-        (lambda (post)
-          {item
-           {title
-            #(and include-type? {just #(post-type post) –})
-              #(post-title post)}
-           {link "https://jackfaller.xyz"#(post-path post)}
-           {pubDate #(rfc-822 (post-date post))}
-           {generator Doclisp}
-           {description {#(escaped html) #@(post-description post)}}})
-        (at-most feed-size posts))}}})
-
-(define (xsl-document . body)
+(define (atom-feed-for posts this-page prev-archive next-archive)
+  (define (format-date date) (date->string date "~4"))
+  (define common
+    {just {author
+           {name Jack Faller}
+           {uri https://jackfaller.xyz}
+           {email jack.t.faller@gmail.com}}
+          {rights Copyright © #(number->string (date-year (post-date (car posts)))), Jack Faller}
+          ;; TODO: Make this the actual date.
+          {updated #(format-date (current-date))}})
   {just
    {raw #"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"}
-   {{xsl:stylesheet {version 1.0} {xmlns:xsl http://www.w3.org/1999/XSL/Transform}}
-    ;; Not sure if setting doctype-public to "" is valid, but it's the only way to disable quirks mode.
-    {{xsl:output {method html} {doctype-public} {encoding UTF-8} {indent yes}}}
-    #@body}})
+   {raw #"<?xml-stylesheet type=\"text/xsl\" href=\"/stylesheet.xsl\"?>"}
+   {{feed {xml:lang en-GB}
+          {xmlns http://www.w3.org/2005/Atom}
+          {xmlns:j http:/jackfaller.xyz}}
+    {{title {type text}} Jack Faller}
+    {{subtitle {type text}} All the stuff from me.}
+    #common
+    {id urn:uuid:4a904a9b-e398-4527-9db3-8a31426e4047}
+    {{generator {uri https://github.com/jack-faller/website}} Doclisp}
+    {icon https://jackfaller.xyz/favicon.ico}
+    ;; TODO
+    ;; {logo }
+    {{link {rel self} {href https://jackfaller.xyz/#this-page}}}
+    {{link {rel alternate} {type text/html} {href https://jackfaller.xyz}}}
+    #(if next-archive
+         {just
+          {{link {rel next-archive} {href https://jackfaller.xyz/#next-archive}}}
+          {{link {rel current} {href https://jackfaller.xyz/atom.xml}}}}
+         #f)
+    #(if prev-archive
+         {{link {rel prev-archive} {href https://jackfaller.xyz/#prev-archive}}}
+         #f)
+    #@(map
+       (lambda (post)
+         {entry
+          {{title {type text}} #(post-title post)}
+          {{content {type text/html}
+                    {src https://jackfaller.xyz#(post-path post)}}}
+          {published #(format-date (post-date post))}
+          #common
+          {{category {term #(post-type post)} {label #(post-dir post)}}}
+          ;; TODO: add uuid to posts
+          {id https://jackfaller.xyz#(post-path post)}
+          {{summary {type xhtml}} #@(post-description post)}
+          {j:date #(post-date-y/m/d post)}})
+       posts)}})
 
 (define (handle-pages ext path language)
   (for-each
@@ -637,5 +643,6 @@
        (string-append path name "." ext) language (load file doclisp-reader))))
    (dirfiles (string-append "pages/" ext))))
 (handle-pages "html" "" html)
-(handle-pages "rss" "rss/" xml)
-(handle-pages "xsl" "rss/" xslt)
+(handle-pages "xsl" "" xslt)
+;; TODO: archives.
+(write-form-to-file "atom.xml" xml (atom-feed-for (reverse public-posts) "atom.xml" #f #f))

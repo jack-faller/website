@@ -24,7 +24,7 @@
         {li
          {a
           {{xsl:attribute {name href}}
-           {{xsl:value-of {select atom:link/atom:href}}}}
+           {{xsl:value-of {select atom:content/@src}}}}
           {{xsl:value-of {select j:date}}}
           –
           {{xsl:value-of {select atom:category/@term}}}

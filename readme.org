@@ -15,12 +15,12 @@ Doclisp has a handy macro to set the reader.
 ~doclisp-reader~ is a function similar to the built in ~read~ but has additional syntax for writing text using curly brackets. Below is a demonstration of this syntax and what it maps to in normal scheme.
 #+begin_src scheme
   {a {b} ('`,c. ) #d #"#;," #@e}
-  ;; is the same as
+  ;; is read as
+  (doclisp "a" ("b") "('`,c." ")" ,d "#;," ,@e)
+  ;; which is the same as
   `("a" ("b") "('`,c." ")" ,d "#;," ,@e)
 #+end_src
 Within curly braces, all ordinary syntax is disabled and text is split by spaces then converted to strings. (As a result of this, white-space is not significant.) Curly braces can be nested without causing issues with quoting. The macros ~#~ and ~#@~ are the equivalent of ~​,​~ and ~​,@​~ from ~quasiquote~, they will read an ordinary scheme form put the result of evaluating it into the list. Comments will still work within the curly braces. The unquoting ~#~ can also be used to escape these characters unquoting a string literal.
-*** Input Recovery
-Doclisp will actually produce expressions which use ~doclisp-quasiquote~ instead of the ordinary ~quasiquote~, which is just a macro that expands to ~quasiquote~. This allows you to determine which form was used in the source file from the results of a Doclisp read, and use used by ~doclisp-pretty-write~ to output code similar to the source file.
 ** Escaping
 When the doclisp reader encounters a ~\~ (backslash) character, it will treat the subsequent character literally. This can be used to write special charters (eg ~{}#\;~) into symbols.
 ** Out Of Date Documentation

@@ -3,12 +3,13 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-13)
+  #:use-module (srfi srfi-43)
   #:use-module (srfi srfi-69)
   #:use-module (ice-9 regex)
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 textual-ports)
-  #:export (set-reader! doclisp-quasiquote doclisp-reader
+  #:export (set-reader! doclisp doclisp-read doclisp-write
             write-form write-forms
             make-escaper escaper? escaper-hash-table escaper-write
             make-language language?
@@ -22,10 +23,10 @@
     ((_ reader)
      (eval-when (compile eval)
        (fluid-set! current-reader reader)))))
-(define-syntax doclisp-quasiquote
+(define-syntax doclisp
   (syntax-rules ()
     ((_ . rest)
-     (quasiquote . rest))))
+     (quasiquote rest))))
 
 (define (port-position port)
   (vector (port-filename port) (port-line port) (port-column port)))
@@ -182,11 +183,87 @@
             '(#\) #\) #\})))
    eq? hash-by-identity))
 
-(define (doclisp-reader port)
+(define (doclisp-read port)
   (define val (table-read port default-read-table))
   (if (eq? val comment)
-      (doclisp-reader port)
+      (doclisp-read port)
       val))
+
+(define (get-distinguished-forms symbol)
+  (case symbol
+    ((receive let define lambda define-record-type define-syntax syntax-rules)
+     1)
+    ((begin)
+     0)
+    (else #f)))
+
+(define (pair-starting-with? list symbol)
+  (and (pair? form) (eq? (car form) symbol)))
+(define (curly-list? form)
+  (and (pair-starting-with? form 'doclisp)
+       (list? form)
+       (every
+        (lambda (x)
+          (or (string? x)
+              (pair-starting-with? x 'unquote)
+              (pair-starting-with? x 'unquote-splicing)
+              (curly-list? x)))
+        (cdr form))))
+
+(define* (doclisp-write form port)
+  (define (write-curly-item form port)
+    (cond
+     ((string? form)
+      (display form port))
+     ((pair-starting-with? form 'unquote)
+      (display "#" port)
+      (doclisp-write form port))
+     ((pair-starting-with? form 'unquote-splicing)
+      (display "#@" port)
+      (doclisp-write form port))
+     (else
+      (write-curly-list form port))))
+  (define (write-curly-list form port)
+    (display "{" port)
+    (write-curly-item (car form) port)
+    (for-each (lambda (x) (display " " port) (write-curly-item x port))
+              (cdr form))
+    (display "}" port))
+  (cond
+   ((pair? form)
+    (let ((first (car form)) (rest (cdr form)))
+      (if (curly-list? form)
+          (write-curly-list form port)
+          (receive (special-char special?)
+              (case first
+                ((quote) (values "'" #t))
+                ((quasiquote) (values "`" #t))
+                ((unquote) (values "," #t))
+                ((unquote-splicing) (values ",@" #t))
+                (else (values #f #f)))
+            (if (and special? (pair? rest) (null? (cdr rest)))
+                (begin
+                  (display special-char port)
+                  (doclisp-write rest port))
+                (begin
+                  (display "(" port)
+                  (doclisp-write first port)
+                  (let loop ((rest rest))
+                    (if (pair? rest)
+                        (begin
+                          (display " " port)
+                          (doclisp-write (car rest) port)
+                          (loop (cdr rest)))
+                        (begin
+                          (display " . " port)
+                          (doclisp-write rest port))))
+                  (display ")" port)))))))
+   ((vector? form)
+    (display "#(" port)
+    (vector-for-each (lambda (x) (doclisp-write x port ))form)
+    (display ")" port))
+   (else
+    (write form port))))
 
 (define* (xml-tag-writer #:key should-self-close? needs-empty-body?)
   (lambda (name attributes body language port)

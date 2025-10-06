@@ -13,7 +13,7 @@
              (srfi srfi-19)
              (srfi srfi-26))
 
-(set-reader! doclisp-reader)
+(set-reader! doclisp-read)
 
 (define (cmd prog . args)
   (call-with-port (apply open-pipe* OPEN_BOTH prog args) get-string-all))
@@ -558,7 +558,7 @@
        (receive (n nr format-notes) (footnotes)
          (set! note n)
          (set! note-ref nr)
-         (let ((p (load file doclisp-reader)))
+         (let ((p (load file doclisp-read)))
            (post-name! p name)
            (post-body! p `(,@(post-body p) ,(format-notes)))
            (post-type! p post-type)
@@ -640,7 +640,7 @@
    (scheme-file-functor
     (lambda (name file)
       (write-form-to-file
-       (string-append path name "." ext) language (load file doclisp-reader))))
+       (string-append path name "." ext) language (load file doclisp-read))))
    (dirfiles (string-append "pages/" ext))))
 (handle-pages "html" "" html)
 (handle-pages "xsl" "" xslt)

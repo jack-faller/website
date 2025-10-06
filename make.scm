@@ -438,8 +438,7 @@
      {{meta {charset utf-8}}}
      {{link {rel stylesheet} {type text/css} {href {absolute-path /style.css}}}}
      {{link {rel alternate} {type application/atom+xml}
-            {href https://jackfaller.xyz/atom.xml}
-            {title {just Jack Faller}}}}
+            {href https://jackfaller.xyz/atom.xml}}}
      #(and blog-name
            {just
             {script const blog-name =
@@ -592,7 +591,9 @@
  public-posts)
 
 (define (atom-feed-for posts this-page prev-archive next-archive)
-  (define (format-date date) (date->string date "~4"))
+  (define (format-date date) (regexp-substitute/global
+                              #f ".[^Z]$" (date->string date "~4")
+                              'pre ":" 0))
   (define common
     {just {author
            {name Jack Faller}
@@ -606,7 +607,7 @@
    {raw #"<?xml-stylesheet type=\"text/xsl\" href=\"/stylesheet.xsl\"?>"}
    {{feed {xml:lang en-GB}
           {xmlns http://www.w3.org/2005/Atom}
-          {xmlns:j http:/jackfaller.xyz}}
+          {xmlns:j http://jackfaller.xyz}}
     {{title {type text}} Jack Faller}
     {{subtitle {type text}} All the stuff from me.}
     #common
@@ -634,8 +635,10 @@
           {published #(format-date (post-date post))}
           #common
           {{category {term #(post-type post)} {label #(post-dir post)}}}
-          {id #(post-uuid post)}
-          {{summary {type xhtml}} #@(post-description post)}
+          {id urn:uuid:#(post-uuid post)}
+          {{summary {type xhtml}}
+           {{div {xmlns http://www.w3.org/1999/xhtml}}
+            #@(post-description post)}}
           {j:date #(post-date-y/m/d post)}})
        posts)}})
 

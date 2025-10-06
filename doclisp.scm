@@ -8,7 +8,8 @@
   #:use-module (ice-9 rdelim)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 textual-ports)
-  #:export (set-reader! doclisp-reader write-form write-forms
+  #:export (set-reader! doclisp-quasiquote doclisp-reader
+            write-form write-forms
             make-escaper escaper? escaper-hash-table escaper-write
             make-language language?
             language-write-tag
@@ -21,6 +22,10 @@
     ((_ reader)
      (eval-when (compile eval)
        (fluid-set! current-reader reader)))))
+(define-syntax doclisp-quasiquote
+  (syntax-rules ()
+    ((_ . rest)
+     (quasiquote . rest))))
 
 (define (port-position port)
   (vector (port-filename port) (port-line port) (port-column port)))
@@ -159,8 +164,8 @@
      ,(quote-syntax-pair #\` 'quasiquote)
      (#\, . ,unquote-reader)
      (#\{ . ,(lambda (port table)
-               (cons 'doclisp-quasiquote
-                     (list (delimited-read #\} port curly-read-table #t)))))
+               (list 'doclisp-quasiquote
+                     (delimited-read #\} port curly-read-table #t))))
      ,comment-reader-pair
      (#\# . ,(lambda (port table)
                (case (peek-char port)
@@ -343,7 +348,7 @@
    ((or (not form) (null? form)))
    ((string? form) (language-write-escaped language form port))
    ((not (pair? form))
-    (error "Unexpected object in form->xml." form))
+    (error "Unexpected object in form->xml:" form))
    ((language? (car form))
     (write-forms (cdr form) (car form) port))
    (else

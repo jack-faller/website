@@ -15,7 +15,7 @@
   #:use-module (srfi srfi-26)
   #:export (build))
 
-(set-reader! doclisp-read)
+(set-reader! doclisp-reader)
 
 ;; TODO: add open Graph tags.
 ;; <meta property="og:type" content="">
@@ -565,7 +565,7 @@
        (receive (n nr format-notes) (footnotes)
          (set! note n)
          (set! note-ref nr)
-         (let ((p (load file doclisp-read)))
+         (let ((p (load file doclisp-reader)))
            (post-name! p name)
            (post-body! p `(,@(post-body p) ,(format-notes)))
            (post-type! p post-type)
@@ -643,7 +643,7 @@
    (scheme-file-functor
     (lambda (name file)
       (write-form-to-file
-       (string-append path name "." ext) language (load file doclisp-read))))
+       (string-append path name "." ext) language (load file doclisp-reader))))
    (dirfiles (string-append "pages/" ext))))
 
 (define public-posts (make-fluid))

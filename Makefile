@@ -14,7 +14,7 @@ servdir: generated image $(shell find static) server-url.txt
 	cp tiling/output.png servdir/images/tiling_pattern.png
 generated: $(shell find pages posts thoughts) doclisp.scm make.scm
 	rm -rf $@
-	./guile.sh -e "(@ (make) build)" -s make.scm . "$@"
+	./guile.sh -e "(@ (make) build)" make.scm . "$@"
 nginx-token: nginx.conf server-url.txt
 	rsync nginx.conf "$$(cat server-url.txt):/etc/nginx/nginx.conf"
 	ssh $$(cat server-url.txt) nginx -s reload

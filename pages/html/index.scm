@@ -15,4 +15,4 @@
  (link-heading 2 "posts"
                "Posts"
                {join #" (" {{a {href ./atom.xml}} full feed} #")"})
- {ul #@(map (post->li #t) (at-most 10 public-posts))})
+ {ul #@(map (post->li #t) (at-most 10 (fluid-ref public-posts)))})

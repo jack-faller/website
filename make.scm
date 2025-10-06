@@ -1,25 +1,38 @@
-(use-modules ((utilities iterators) #:prefix iter:)
-             (doclisp)
-             (ice-9 ftw)
-             (ice-9 match)
-             (ice-9 regex)
-             (ice-9 popen)
-             (ice-9 unicode)
-             (ice-9 receive)
-             (ice-9 hash-table)
-             (ice-9 textual-ports)
-             (srfi srfi-1)
-             (srfi srfi-9)
-             (srfi srfi-19)
-             (srfi srfi-26))
+(define-module (make)
+  #:use-module ((utilities iterators) #:prefix iter:)
+  #:use-module (doclisp)
+  #:use-module (ice-9 ftw)
+  #:use-module (ice-9 match)
+  #:use-module (ice-9 regex)
+  #:use-module (ice-9 popen)
+  #:use-module (ice-9 unicode)
+  #:use-module (ice-9 receive)
+  #:use-module (ice-9 hash-table)
+  #:use-module (ice-9 textual-ports)
+  #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-19)
+  #:use-module (srfi srfi-26)
+  #:export (build))
 
 (set-reader! doclisp-read)
+
+;; TODO: add open Graph tags.
+;; <meta property="og:type" content="">
+;; <meta property="og:title" content="">
+;; <meta property="og:description" content="">
+;; <meta property="og:image" content="">
 
 (define (cmd prog . args)
   (call-with-port (apply open-pipe* OPEN_BOTH prog args) get-string-all))
 
-(define current-dir (string-append (or (getenv "THISDIR") ".") "/"))
-(define (thisdir f) (string-append current-dir f))
+(define input-directory (make-fluid))
+(define output-directory (make-fluid))
+(define (input-file name) (string-append (fluid-ref input-directory) "/" name))
+(define (output-file name)
+  (let ((fname (string-append (fluid-ref output-directory) "/" name)))
+    (system* "mkdir" "-p" (dirname fname))
+    fname))
 
 (define (style-vect-index capital? italic? bold?)
   (+ (if capital? 4 0) (if italic? 2 0) (if bold? 1 0)))
@@ -450,11 +463,10 @@
              "")
         #(number->string (date-year (current-date)))}
        Jack Faller}}}}})
-;; Remember to put .codequote on inline code blocks to avoid word breaking.
 (define (code-block file-name)
   {pre {{code {class block}}
         {raw
-         #(cmd "highlight" (thisdir (string-append "posts/" file-name))
+         #(cmd "highlight" (input-file (string-append "posts/" file-name))
                "-O" "html" "--inline-css" "--fragment"
                "--line-numbers" "--line-number-length" "3")}}})
 (define date-string-format "~Y/~m/~d ~H:~M ~z")
@@ -505,11 +517,6 @@
 (define (page . body) (template body))
 (define (home-page . body) (template body #:wants-back-arrow? #f))
 
-(system* "rm" "-rf" (thisdir "generated"))
-(define (output-file-name name)
-  (let ((fname (thisdir (string-append "generated/" name))))
-    (system* "mkdir" "-p" (dirname fname))
-    fname))
 (define (output-file-path-to-root name)
   (with-output-to-string
     (lambda ()
@@ -521,7 +528,7 @@
 
 (define (write-form-to-file name language sexp)
   (define language* (language-extend language (output-file-path-to-root name)))
-  (call-with-output-file (output-file-name name)
+  (call-with-output-file (output-file name)
     (lambda (port) (write-form sexp language* port))))
 
 (define (scheme-file-functor f)
@@ -531,8 +538,8 @@
         #f)))
 (define (dirfiles dir)
   (map
-   (lambda (x) (string-append (thisdir dir) "/" x))
-   (scandir (thisdir dir)
+   (lambda (x) (string-append (input-file dir) "/" x))
+   (scandir (input-file dir)
             (lambda (file) (not (or (string= file ".") (string= file "..")))))))
 
 (define (at-most n list)
@@ -581,10 +588,6 @@
       #:blog-name (post-name post) #:date (post-date post))))
   posts)
  public-posts)
-
-(define public-blogs (post-like-dir "posts" "post" "Blog Post"))
-(define public-thoughts (post-like-dir "thoughts" "thought" "Thought"))
-(define public-posts (merge public-thoughts public-blogs post-time->?))
 
 (define (atom-feed-for posts this-page prev-archive next-archive)
   (define (format-date date) (date->string date "~4"))
@@ -642,7 +645,22 @@
       (write-form-to-file
        (string-append path name "." ext) language (load file doclisp-read))))
    (dirfiles (string-append "pages/" ext))))
-(handle-pages "html" "" html)
-(handle-pages "xsl" "" xslt)
-;; TODO: archives.
-(write-form-to-file "atom.xml" xml (atom-feed-for (reverse public-posts) "atom.xml" #f #f))
+
+(define public-posts (make-fluid))
+
+(define (build arguments)
+  (fluid-set! input-directory (cadr arguments))
+  (fluid-set! output-directory (caddr arguments))
+
+  (define public-blogs (post-like-dir "posts" "post" "Blog Post"))
+  (define public-thoughts (post-like-dir "thoughts" "thought" "Thought"))
+  (fluid-set! public-posts (merge public-thoughts public-blogs post-time->?))
+
+  (handle-pages "html" "" html)
+  (handle-pages "xsl" "" xslt)
+  ;; TODO: archives.
+  (write-form-to-file
+   "atom.xml" xml
+   (atom-feed-for (reverse (fluid-ref public-posts)) "atom.xml" #f #f)))
+
+

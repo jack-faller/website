@@ -1,4 +1,4 @@
-(use-modules (iterators)
+(use-modules ((utilities iterators) #:prefix iter:)
              (doclisp)
              (ice-9 ftw)
              (ice-9 match)
@@ -272,14 +272,14 @@
     (if (eqv? expr #f) acc (error "TODO: this")))
   (cons
    (detag (car terms))
-   (iter->list
-    (iter-map
+   (iter:to-list!
+    (iter:map
      detag
-     (iter-scan
+     (iter:scan
       (lambda (acc next)
         (rewrite (get-next acc (car next)) (alist->hash-table (cdr next))))
       (car terms)
-      (list->iter (cdr terms)))))))
+      (iter:from-list (cdr terms)))))))
 
 (define math-definitions
   (let ((it {mo {raw &it\;}})

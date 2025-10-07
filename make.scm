@@ -603,8 +603,8 @@
           ;; TODO: Make this the actual date.
           {updated #(format-date (current-date))}})
   {just
-   {raw #"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"}
-   {raw #"<?xml-stylesheet type=\"text/xsl\" href=\"./atom.xsl\"?>"}
+   {? xml version="1.0" encoding="UTF-8"}
+   {? xml-stylesheet type="text/xsl" href="./atom.xsl"}
    {{feed {xml:lang en-GB}
           {xmlns http://www.w3.org/2005/Atom}
           {xmlns:j http://jackfaller.xyz}}

@@ -401,6 +401,10 @@
          (language-write-unescaped language (car body) port))
         ((equal? name "join")
          (for-each (lambda (x) (write-form x language port)) body))
+        ((equal? name "?")
+         (display "<?" port)
+         (write-forms body language port)
+         (display "?>" port))
         (else
          (tag name attributes body language port)))))))
 

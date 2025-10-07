@@ -437,6 +437,7 @@
      {title Jack Faller}
      {{meta {charset utf-8}}}
      {{link {rel stylesheet} {type text/css} {href /style.css}}}
+     {{link {rel blogroll} {type text/xml} {href /blogroll.xml}}}
      {{link {rel alternate} {type application/atom+xml} {href /atom.xml}}}
      #(and blog-name
            {just

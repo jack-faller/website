@@ -6,13 +6,18 @@ send: servdir nginx-token
 clean:
 	rm -rf servdir build nginx-token generated || true
 image: generated/images/tiling_pattern.png
-servdir: generated generated/blogroll.opml image $(shell find static) server-url.txt
+servdir: generated generated/blogroll.xml image $(shell find static) server-url.txt
 	rm -rf servdir || true
 	cp -rT static servdir
 	cp -rT generated/ servdir
 generated: $(shell find pages posts thoughts) doclisp.scm make.scm
 	rm -rf "$@"
 	./guile.sh -e "(@ (make) build)" make.scm . "$@"
+generated/blogroll.xml: blogroll.opml generated
+	mkdir -p "$$(dirname "$@")"
+	mv generated/modify-blogroll.xsl build/ || true
+	sed 's#<opml#<?xml version="1.0" encoding="UTF-8"?><opml xmlns="http://opml.org/spec2"#' "$<" > build/blogroll.opml
+	xsltproc -o "$@" build/modify-blogroll.xsl build/blogroll.opml
 nginx-token: nginx.conf server-url.txt
 	rsync nginx.conf "$$(cat server-url.txt):/etc/nginx/nginx.conf"
 	ssh $$(cat server-url.txt) nginx -s reload

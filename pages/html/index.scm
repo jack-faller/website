@@ -11,6 +11,8 @@
    I've been doing it for some years now and I like to think I'm rather good at it.
    This is the place I will be collating and writing about the things I've done (programming or otherwise), and sharing my general musings on life.
    I have been cursed with a great many ideas and I hope they may be of some use to you.}
+  {p
+   Check out {{a {href /blogroll.xml}} my blogroll} to see who I follow.}
   #(link-heading 2 "where-to-find-me" "Where To Find Me")
   {ul
    {li {{a {href ./atom.xml}} My Atom feed.}}

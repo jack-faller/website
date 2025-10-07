@@ -1,2 +1,5 @@
 [*.scm]
 indent_style = space
+[nginx.conf]
+indent_style = space
+indent_size = 2

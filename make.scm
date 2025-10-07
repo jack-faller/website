@@ -483,15 +483,15 @@
    (date->string date " ~B ~Y")))
 
 (define-record-type <post>
-  (make-post name uuid type dir title time date description body)
+  (make-post name uuid type dir title time published description body)
   post?
   (name         post-name         post-name!)
   (uuid         post-uuid         post-uuid!)
   (type         post-type         post-type!)
   (dir          post-dir          post-dir!)
-  (time         post-time         post-time!)
   (title        post-title        post-title!)
-  (date         post-date         post-date!)
+  (time         post-time         post-time!)
+  (published    post-published    post-published!)
   (description  post-description  post-description!)
   (body         post-body         post-body!))
 (define (post-path post)
@@ -517,11 +517,11 @@
 (define note #f)
 (define note-ref #f)
 (define (post-time->? a b) (time>? (post-time a) (post-time b)))
-(define (post-date-y/m/d post) (date->string (post-date post) "~y/~m/~d"))
+(define (post-published-y/m/d post) (date->string (post-published post) "~y/~m/~d"))
 (define (post->li include-type?)
   (lambda (post)
     {li {{a {href #(post-path post)}}
-         #(post-date-y/m/d post)
+         #(post-published-y/m/d post)
          #(and include-type? {just – #(post-type post)})
          –
          #@(post-title post)}}))
@@ -536,9 +536,9 @@
          (set! note-ref nr)
          (let*
              ((post (cdr (load file)))
-              (date (assoc-ref post "date"))
-              (date (and date (read-date-string (car date))))
-              (time (and date (date->time-tai date)))
+              (published (assoc-ref post "published"))
+              (published (and published (read-date-string (car published))))
+              (time (and published (date->time-tai published)))
               (post (make-post
                      name
                      (car (assoc-ref post "uuid"))
@@ -546,7 +546,7 @@
                      dirname-singular
                      (assoc-ref post "title")
                      time
-                     date
+                     published
                      (assoc-ref post "description")
                      {#@(or (assoc-ref post "body") '()) #(format-notes)})))
            (set! note #f)
@@ -564,7 +564,7 @@
        {h1 #@(post-title post)}
        {p #@(post-description post)}
        (post-body post))
-      #:blog-name (post-name post) #:date (post-date post))))
+      #:blog-name (post-name post) #:date (post-published post))))
   posts)
  public-posts)
 
@@ -577,8 +577,9 @@
            {name Jack Faller}
            {uri https://jackfaller.xyz}
            {email jack.t.faller@gmail.com}}
-          {rights Copyright © #(number->string (date-year (post-date (car posts)))), Jack Faller}
-          ;; TODO: Make this the actual date.
+          {rights Copyright © #(number->string (date-year (post-published (car posts)))), Jack Faller}
+          ;; TODO: Make this the actual date by adding an updated field to
+          ;; posts and taking the maximum of them for the feed.
           {updated #(format-date (current-date))}})
   {just
    {? xml version="1.0" encoding="UTF-8"}
@@ -610,14 +611,14 @@
           {{title {type text}} #@(post-title post)}
           {{content {type text/html}
                     {src https://jackfaller.xyz#(post-path post)}}}
-          {published #(format-date (post-date post))}
+          {published #(format-date (post-published post))}
           #common
           {{category {term #(post-type post)} {label #(post-dir post)}}}
           {id urn:uuid:#(post-uuid post)}
           {{summary {type xhtml}}
            {{div {xmlns http://www.w3.org/1999/xhtml}}
             #@(post-description post)}}
-          {j:date #(post-date-y/m/d post)}})
+          {j:date #(post-published-y/m/d post)}})
        posts)}})
 
 (define (handle-pages ext path language loader)

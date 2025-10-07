@@ -483,19 +483,19 @@
    (date->string date " ~B ~Y")))
 
 (define-record-type <post>
-  (make-post name uuid type dir title time published description body)
+  (make-post name uuid type type-pretty title time published description body)
   post?
   (name         post-name         post-name!)
   (uuid         post-uuid         post-uuid!)
   (type         post-type         post-type!)
-  (dir          post-dir          post-dir!)
+  (type-pretty  post-type-pretty  post-type-pretty!)
   (title        post-title        post-title!)
   (time         post-time         post-time!)
   (published    post-published    post-published!)
   (description  post-description  post-description!)
   (body         post-body         post-body!))
 (define (post-path post)
-  (string-append "/" (post-dir post) "/" (post-name post) ".html"))
+  (string-append "/" (post-type post) "/" (post-name post) ".html"))
 
 (define (page . body) (template body))
 
@@ -522,11 +522,16 @@
   (lambda (post)
     {li {{a {href #(post-path post)}}
          #(post-published-y/m/d post)
-         #(and include-type? {just – #(post-type post)})
+         #(and include-type? {just – #(post-type-pretty post)})
          –
          #@(post-title post)}}))
-
-(define (post-like-dir dirname-plural dirname-singular post-type)
+(define pretty-types
+  (alist->hash-table
+   '(("post" . "Blog Post")
+     ("thought" . "Thought")
+     ("repost" . "Repost")
+     ("reply" . "Reply"))))
+(define (build-posts directory)
  (define posts
    (filter-map
     (scheme-file-functor
@@ -535,15 +540,16 @@
          (set! note n)
          (set! note-ref nr)
          (let*
-             ((post (cdr (load file)))
+             ((content (load file))
+              (post (cdr content))
               (published (assoc-ref post "published"))
               (published (and published (read-date-string (car published))))
               (time (and published (date->time-tai published)))
               (post (make-post
                      name
                      (car (assoc-ref post "uuid"))
-                     post-type
-                     dirname-singular
+                     (caar content)
+                     (hash-ref pretty-types (caar content))
                      (assoc-ref post "title")
                      time
                      published
@@ -552,12 +558,11 @@
            (set! note #f)
            (set! note-ref #f)
            post))))
-    (dirfiles dirname-plural)))
- (define public-posts (sort (filter post-time posts) post-time->?))
+    (dirfiles directory)))
  (for-each
   (lambda (post)
     (write-form-to-file
-     (string-append dirname-singular "/" (post-name post) ".html")
+     (string-append (post-type post) "/" (post-name post) ".html")
      html
      (template
       (cons*
@@ -566,7 +571,7 @@
        (post-body post))
       #:blog-name (post-name post) #:date (post-published post))))
   posts)
- public-posts)
+ (sort (filter post-time posts) post-time->?))
 
 (define (atom-feed-for posts this-page prev-archive next-archive)
   (define (format-date date) (regexp-substitute/global
@@ -613,7 +618,7 @@
                     {src https://jackfaller.xyz#(post-path post)}}}
           {published #(format-date (post-published post))}
           #common
-          {{category {term #(post-type post)} {label #(post-dir post)}}}
+          {{category {term #(post-type post)} {label #(post-type-pretty post)}}}
           {id urn:uuid:#(post-uuid post)}
           {{summary {type xhtml}}
            {{div {xmlns http://www.w3.org/1999/xhtml}}
@@ -635,9 +640,7 @@
   (fluid-set! input-directory (cadr arguments))
   (fluid-set! output-directory (caddr arguments))
 
-  (define public-blogs (post-like-dir "posts" "post" "Blog Post"))
-  (define public-thoughts (post-like-dir "thoughts" "thought" "Thought"))
-  (fluid-set! public-posts (merge public-thoughts public-blogs post-time->?))
+  (fluid-set! public-posts (build-posts "posts"))
 
   (handle-pages "html" "" html
                 (lambda (file)

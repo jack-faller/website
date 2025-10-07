@@ -15,7 +15,7 @@
     #(page
       {h1 Posts}
       {p
-       This is an ATOM feed (similar to RSS).
+       This is an Atom feed (similar to RSS).
        Copy the link from the URL of this page into your feed reader to subscribe.
        Be sure to add it to your public {{a {href https://opml.org/blogroll.opml}} blogroll} so others can see it.}
       {{ul {class no-bullet}}

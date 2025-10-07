@@ -11,15 +11,14 @@
    I've been doing it for some years now and I like to think I'm rather good at it.
    This is the place I will be collating and writing about the things I've done (programming or otherwise), and sharing my general musings on life.
    I have been cursed with a great many ideas and I hope they may be of some use to you.}
-  ;; TODO: a repost section.
+  #(link-heading 2 "where-to-find-me" "Where To Find Me")
   {ul
-   {li {b Blog}: {{a {href \#heading-recent-blog}} recent}, {{a {href ./blogs.html}} see all}, {{a {href ./rss/blogs.rss}} RSS}}
-   {li {b Thoughts}: {{a {href \#heading-recent-thoughts}} recent}, {{a {href ./thoughts.html}} see all}, {{a {href ./rss/thoughts.rss}} RSS}}
-   {li {b Github}: {{a {href https://github.com/jack-faller}} github.com/jack-faller}}
-   {li {b Email}: {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
+   {li {{a {href ./atom.xml}} My Atom feed.}}
+   {li {{a {href https://github.com/jack-faller}} On Github.}}
+   {li {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
   {h2
    {{a {href ./atom.xml} {class headinglink}}
-    Posts
+    Activity
     {{img {src /feed-icon.svg}
           {style height: 0.75em\; position: relative\; top: 0.05em\;}
           {alt logo used to represent RSS and ATOM feeds}}}}}

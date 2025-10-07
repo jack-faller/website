@@ -27,6 +27,6 @@
            {{xsl:value-of {select atom:content/@src}}}}
           {{xsl:value-of {select j:date}}}
           –
-          {{xsl:value-of {select atom:category/@term}}}
+          {{xsl:value-of {select atom:category/@label}}}
           –
           {{xsl:value-of {select atom:title}}}}}}})}}}}

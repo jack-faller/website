@@ -483,9 +483,10 @@
    (date->string date " ~B ~Y")))
 
 (define-record-type <post>
-  (make-post name uuid type type-pretty title time published description body)
+  (make-post name parent uuid type type-pretty title time published description body)
   post?
   (name         post-name         post-name!)
+  (parent       post-parent       post-parent!)
   (uuid         post-uuid         post-uuid!)
   (type         post-type         post-type!)
   (type-pretty  post-type-pretty  post-type-pretty!)
@@ -494,8 +495,18 @@
   (published    post-published    post-published!)
   (description  post-description  post-description!)
   (body         post-body         post-body!))
-(define (post-path post)
-  (string-append "/" (post-type post) "/" (post-name post) ".html"))
+(define* (post-url post #:optional #:key full?)
+  (if (blank-repost? post)
+      {just #@(post-parent post)}
+      (string-append
+       (if full?
+           "https://jackfaller.xyz/"
+           "/")
+       (post-type post) "/" (post-name post) ".html")))
+
+(define (blank-repost? post)
+  (and (string= (post-type post) "repost")
+       (not (post-description post))))
 
 (define (page . body) (template body))
 
@@ -520,7 +531,7 @@
 (define (post-published-y/m/d post) (date->string (post-published post) "~y/~m/~d"))
 (define (post->li include-type?)
   (lambda (post)
-    {li {{a {href #(post-path post)}}
+    {li {{a {href #(post-url post)}}
          #(post-published-y/m/d post)
          #(and include-type? {just – #(post-type-pretty post)})
          –
@@ -547,6 +558,7 @@
               (time (and published (date->time-tai published)))
               (post (make-post
                      name
+                     (assoc-ref post "parent")
                      (car (assoc-ref post "uuid"))
                      (caar content)
                      (hash-ref pretty-types (caar content))
@@ -561,15 +573,21 @@
     (dirfiles directory)))
  (for-each
   (lambda (post)
-    (write-form-to-file
-     (string-append (post-type post) "/" (post-name post) ".html")
-     html
-     (template
-      (cons*
-       {h1 #@(post-title post)}
-       {p #@(post-description post)}
-       (post-body post))
-      #:blog-name (post-name post) #:date (post-published post))))
+    (unless (blank-repost? post)
+      (write-form-to-file
+       (string-append (post-type post) "/" (post-name post) ".html")
+       html
+       (template
+        (cons*
+         {h1 {#(if (or (string= (post-type post) "reply")
+                       (string= (post-type post) "repost"))
+                   {a {href #@(or (post-parent post)
+                                  (error "Post missing parent: " (post-title post)))}}
+                   "just")
+              #@(post-title post)}}
+         {p #@(post-description post)}
+         (post-body post))
+        #:blog-name (post-name post) #:date (post-published post)))))
   posts)
  (sort (filter post-time posts) post-time->?))
 
@@ -614,15 +632,16 @@
        (lambda (post)
          {entry
           {{title {type text}} #@(post-title post)}
-          {{content {type text/html}
-                    {src https://jackfaller.xyz#(post-path post)}}}
+          {{content {type text/html} {src #(post-url post #:full? #t)}}}
           {published #(format-date (post-published post))}
-          #common
           {{category {term #(post-type post)} {label #(post-type-pretty post)}}}
           {id urn:uuid:#(post-uuid post)}
-          {{summary {type xhtml}}
-           {{div {xmlns http://www.w3.org/1999/xhtml}}
-            #@(post-description post)}}
+          #(and (not (blank-repost? post))
+                {just
+                 #common
+                 {{summary {type xhtml}}
+                  {{div {xmlns http://www.w3.org/1999/xhtml}}
+                   #@(post-description post)}}})
           {j:date #(post-published-y/m/d post)}})
        posts)}})
 

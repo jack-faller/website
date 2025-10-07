@@ -2,6 +2,10 @@
   . ((eval . (put 'iterator 'scheme-indent-function #'scheme-let-indent))
      (eval . (progn
                (put 'let-next 'scheme-indent-function #'scheme-let-indent)
+               (put 'where 'scheme-indent-function 1)
+               (put 'where* 'scheme-indent-function 1)
+               (put 'whererec 'scheme-indent-function 1)
+               (put 'whererec* 'scheme-indent-function 1)
                (put 'iter-for 'scheme-indent-function 1)
                (put 'iter-for* 'scheme-indent-function 1)
                (put 'if-let-next 'scheme-indent-function #'scheme-let-indent)

@@ -436,9 +436,8 @@
     {head
      {title Jack Faller}
      {{meta {charset utf-8}}}
-     {{link {rel stylesheet} {type text/css} {href {absolute-path /style.css}}}}
-     {{link {rel alternate} {type application/atom+xml}
-            {href https://jackfaller.xyz/atom.xml}}}
+     {{link {rel stylesheet} {type text/css} {href /style.css}}}
+     {{link {rel alternate} {type application/atom+xml} {href /atom.xml}}}
      #(and blog-name
            {just
             {script const blog-name =
@@ -448,7 +447,7 @@
      {main
       {header
        #(and wants-back-arrow?
-             {{a {href {absolute-path /index.html}} {title home} {class backarrow}} ←})
+             {{a {href /index.html} {title home} {class backarrow}} ←})
        #(cond
          (date {{div {class date}} #(date-format date)})
          (blog-name {{div {class date}} DRAFT})
@@ -482,18 +481,6 @@
                       (else "th"))))
    (date->string date " ~B ~Y")))
 
-(define (language-extend language path-to-root)
-  (define parent (language-write-tag language))
-  (language-augment
-   language
-   #:write-tag
-   (lambda (name attributes body language port)
-     (if (equal? name "absolute-path")
-         (begin
-           (language-write-escaped language path-to-root port)
-           (write-forms body language port))
-         (parent name attributes body language port)))))
-
 (define-record-type <post>
   (make-post name uuid type dir title time date description body)
   post?
@@ -511,19 +498,9 @@
 
 (define (page . body) (template body))
 
-(define (output-file-path-to-root name)
-  (with-output-to-string
-    (lambda ()
-      (display ".")
-      (string-for-each
-       (lambda (c)
-         (when (char=? c #\/) (display "/..")))
-       name))))
-
 (define (write-form-to-file name language sexp)
-  (define language* (language-extend language (output-file-path-to-root name)))
   (call-with-output-file (output-file name)
-    (lambda (port) (write-form sexp language* port))))
+    (lambda (port) (write-form sexp language port))))
 
 (define (scheme-file-functor f)
   (lambda (file)
@@ -542,7 +519,7 @@
 (define (post-date-y/m/d post) (date->string (post-date post) "~y/~m/~d"))
 (define (post->li include-type?)
   (lambda (post)
-    {li {{a {href {absolute-path #(post-path post)}}}
+    {li {{a {href #(post-path post)}}
          #(post-date-y/m/d post)
          #(and include-type? {just – #(post-type post)})
          –

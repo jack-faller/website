@@ -10,7 +10,7 @@ servdir: generated generated/blogroll.xml image $(shell find static) server-url.
 	rm -rf servdir || true
 	cp -rT static servdir
 	cp -rT generated/ servdir
-generated: $(shell find pages posts thoughts) doclisp.scm make.scm
+generated: $(shell find pages posts) doclisp.scm make.scm
 	rm -rf "$@"
 	./guile.sh -e "(@ (make) build)" make.scm . "$@"
 generated/blogroll.xml: blogroll.opml generated

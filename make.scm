@@ -645,7 +645,7 @@
           {j:date #(post-published-y/m/d post)}})
        posts)}})
 
-(define (handle-pages ext path language loader)
+(define (build-pages ext path language loader)
   (for-each
    (scheme-file-functor
     (lambda (name file)
@@ -661,14 +661,14 @@
 
   (fluid-set! public-posts (build-posts "posts"))
 
-  (handle-pages "html" "" html
+  (build-pages "html" "" html
                 (lambda (file)
                   (define content (cdr (load file)))
                   (template
                    (assoc-ref content "body")
                    #:wants-back-arrow?
                    (car (or (assoc-ref content "wants-back-arrow?") '(#t))))))
-  (handle-pages "xsl" "" xslt
+  (build-pages "xsl" "" xslt
                 (lambda (file)
                   (cons "just" (assoc-ref (cdr (load file)) "body"))))
   ;; TODO: archives.

@@ -460,10 +460,11 @@
       {header
        #(and wants-back-arrow?
              {{a {href /index.html} {title home} {class backarrow}} ←})
-       #(cond
-         (published {{div {class date}} #(date-format published)})
-         (blog-name {{div {class date}} DRAFT})
-         (else #f))}
+       #(and
+         blog-name
+         (if published
+             {{div {class date}} #(date-format published)}
+             {{div {class date}} DRAFT}))}
       #@body
       #(and published
             {{footer {id copy-notice}} #(copyright published updated)})}}}})

@@ -1,4 +1,5 @@
 servdir
 generated
+build
 server-url.txt
 nginx-token

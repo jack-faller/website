@@ -2,6 +2,7 @@
 (set-reader! doclisp-reader)
 {{page {version #1}}
  {wants-back-arrow? ##f}
+ {published #"2025/10/07 18:20 +0100"}
  {body
   {h1 Here Lies That Which Is Digital of Jack Faller}
   #(link-heading 2 "about" "About Me and This Site")

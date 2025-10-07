@@ -1,4 +1,5 @@
 (define-module (make)
+  #:use-module (utilities)
   #:use-module ((utilities iterators) #:prefix iter:)
   #:use-module (doclisp)
   #:use-module (ice-9 ftw)
@@ -429,7 +430,17 @@
    note-ref
    format-notes))
 
-(define* (template body #:key (blog-name #f) (date #f) (wants-back-arrow? #t))
+(define (copyright published updated)
+  {just
+   ©
+   {join
+    #(number->string (date-year published))
+    #(if (and updated (not (= (date-year published) (date-year updated))))
+         {join – #(number->string (date-year updated))}
+         "")}
+   Jack Faller})
+
+(define* (template body #:key blog-name published updated (wants-back-arrow? #t))
   {just
    {{!DOCTYPE html}}
    {html
@@ -450,18 +461,12 @@
        #(and wants-back-arrow?
              {{a {href /index.html} {title home} {class backarrow}} ←})
        #(cond
-         (date {{div {class date}} #(date-format date)})
+         (published {{div {class date}} #(date-format published)})
          (blog-name {{div {class date}} DRAFT})
          (else #f))}
       #@body
-      {{footer {id copy-notice}}
-       ©
-       {join
-        #(if (and date (not (= (date-year date) (date-year (current-date)))))
-             {join #(number->string (date-year date)) –}
-             "")
-        #(number->string (date-year (current-date)))}
-       Jack Faller}}}}})
+      #(and published
+            {{footer {id copy-notice}} #(copyright published updated)})}}}})
 (define (code-block file-name)
   {pre {{code {class block}}
         {raw
@@ -483,7 +488,7 @@
    (date->string date " ~B ~Y")))
 
 (define-record-type <post>
-  (make-post name parent uuid type type-pretty title time published description body)
+  (make-post name parent uuid type type-pretty title published updated description body)
   post?
   (name         post-name         post-name!)
   (parent       post-parent       post-parent!)
@@ -491,8 +496,8 @@
   (type         post-type         post-type!)
   (type-pretty  post-type-pretty  post-type-pretty!)
   (title        post-title        post-title!)
-  (time         post-time         post-time!)
   (published    post-published    post-published!)
+  (updated      post-updated      post-updated!)
   (description  post-description  post-description!)
   (body         post-body         post-body!))
 (define* (post-url post #:optional #:key full?)
@@ -527,7 +532,8 @@
 
 (define note #f)
 (define note-ref #f)
-(define (post-time->? a b) (time>? (post-time a) (post-time b)))
+(define (post-published->? a b)
+  (time>? (date->time-tai (post-published a)) (date->time-tai (post-published b))))
 (define (post-published-y/m/d post) (date->string (post-published post) "~y/~m/~d"))
 (define (post->li include-type?)
   (lambda (post)
@@ -542,6 +548,9 @@
      ("thought" . "Thought")
      ("repost" . "Repost")
      ("reply" . "Reply"))))
+(define (date-ref post-alist date-name)
+  (define date (assoc-ref post-alist date-name))
+  (and date (read-date-string (car date))))
 (define (build-posts directory)
  (define posts
    (filter-map
@@ -553,9 +562,6 @@
          (let*
              ((content (load file))
               (post (cdr content))
-              (published (assoc-ref post "published"))
-              (published (and published (read-date-string (car published))))
-              (time (and published (date->time-tai published)))
               (post (make-post
                      name
                      (assoc-ref post "parent")
@@ -563,8 +569,8 @@
                      (caar content)
                      (hash-ref pretty-types (caar content))
                      (assoc-ref post "title")
-                     time
-                     published
+                     (date-ref post "published")
+                     (date-ref post "updated")
                      (assoc-ref post "description")
                      {#@(or (assoc-ref post "body") '()) #(format-notes)})))
            (set! note #f)
@@ -587,23 +593,32 @@
               #@(post-title post)}}
          {p #@(post-description post)}
          (post-body post))
-        #:blog-name (post-name post) #:date (post-published post)))))
+        #:blog-name (post-name post)
+        #:published (post-published post)
+        #:updated (post-updated post)))))
   posts)
- (sort (filter post-time posts) post-time->?))
+ (sort (filter post-published posts) post-published->?))
 
 (define (atom-feed-for posts this-page prev-archive next-archive)
   (define (format-date date) (regexp-substitute/global
                               #f ".[^Z]$" (date->string date "~4")
                               'pre ":" 0))
-  (define common
-    {just {author
-           {name Jack Faller}
-           {uri https://jackfaller.xyz}
-           {email jack.t.faller@gmail.com}}
-          {rights Copyright © #(number->string (date-year (post-published (car posts)))), Jack Faller}
-          ;; TODO: Make this the actual date by adding an updated field to
-          ;; posts and taking the maximum of them for the feed.
-          {updated #(format-date (current-date))}})
+  (define (-est get-date compare)
+    (where* it
+      (it (iter:from-list posts))
+      (it (iter:map get-date it))
+      (it (iter:map date->time-tai it))
+      (it (iter:reduce! (lambda (a b) (if (compare a b) a b)) #f it))
+      (it (time-tai->date it))))
+  (define earliest (-est post-published time<?))
+  (define latest (-est
+                   (lambda (i) (or (post-updated i) (post-published i)))
+                   time>?))
+  (define author
+    {author
+     {name Jack Faller}
+     {uri https://jackfaller.xyz}
+     {email jack.t.faller@gmail.com}})
   {just
    {? xml version="1.0" encoding="UTF-8"}
    {? xml-stylesheet type="text/xsl" href="./atom.xsl"}
@@ -612,7 +627,9 @@
           {xmlns:j http://jackfaller.xyz}}
     {{title {type text}} Jack Faller}
     {{subtitle {type text}} All the stuff from me.}
-    #common
+    #author
+    {updated #(format-date latest)}
+    {rights #(copyright earliest latest)}
     {id urn:uuid:4a904a9b-e398-4527-9db3-8a31426e4047}
     {{generator {uri https://github.com/jack-faller/website}} Doclisp}
     {icon https://jackfaller.xyz/favicon.ico}
@@ -634,11 +651,13 @@
           {{title {type text}} #@(post-title post)}
           {{content {type text/html} {src #(post-url post #:full? #t)}}}
           {published #(format-date (post-published post))}
+          #(and (post-updated post) {updated #(format-date (post-updated post))})
           {{category {term #(post-type post)} {label #(post-type-pretty post)}}}
           {id urn:uuid:#(post-uuid post)}
-          #(and (not (blank-repost? post))
+          #(and (not (string= (post-type post) "repost"))
                 {just
-                 #common
+                 #author
+                 {rights #(copyright (post-published post) (post-updated post))}
                  {{summary {type xhtml}}
                   {{div {xmlns http://www.w3.org/1999/xhtml}}
                    #@(post-description post)}}})
@@ -667,7 +686,9 @@
                   (template
                    (assoc-ref content "body")
                    #:wants-back-arrow?
-                   (car (or (assoc-ref content "wants-back-arrow?") '(#t))))))
+                   (car (or (assoc-ref content "wants-back-arrow?") '(#t)))
+                   #:published (date-ref content "published")
+                   #:updated (date-ref content "updated"))))
   (build-pages "xsl" "" xslt
                 (lambda (file)
                   (cons "just" (assoc-ref (cdr (load file)) "body"))))

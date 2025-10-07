@@ -1,6 +1,7 @@
 (define-module (make)
   #:use-module (utilities)
   #:use-module ((utilities iterators) #:prefix iter:)
+  #:use-module ((utilities sinks) #:prefix sink:)
   #:use-module (doclisp)
   #:use-module (ice-9 ftw)
   #:use-module (ice-9 match)
@@ -286,14 +287,13 @@
     (if (eqv? expr #f) acc (error "TODO: this")))
   (cons
    (detag (car terms))
-   (iter:to-list!
-    (iter:map
-     detag
-     (iter:scan
-      (lambda (acc next)
-        (rewrite (get-next acc (car next)) (alist->hash-table (cdr next))))
-      (car terms)
-      (iter:from-list (cdr terms)))))))
+   (->> (iter:from-list (cdr terms))
+        (iter:scan
+         (lambda (acc next)
+           (rewrite (get-next acc (car next)) (alist->hash-table (cdr next))))
+         (car terms))
+        (iter:map detag)
+        (iter:collect! (sink:list)))))
 
 (define math-definitions
   (let ((it {mo {raw &it\;}})
@@ -604,12 +604,11 @@
                               #f ".[^Z]$" (date->string date "~4")
                               'pre ":" 0))
   (define (-est get-date compare)
-    (where* it
-      (it (iter:from-list posts))
-      (it (iter:map get-date it))
-      (it (iter:map date->time-tai it))
-      (it (iter:reduce! (lambda (a b) (if (compare a b) a b)) #f it))
-      (it (time-tai->date it))))
+    (->> (iter:from-list posts)
+         (iter:map get-date)
+         (iter:map date->time-tai)
+         (iter:collect! (sink:reduce (lambda (a b) (if (compare a b) a b)) #f))
+         (time-tai->date)))
   (define earliest (-est post-published time<?))
   (define latest (-est
                    (lambda (i) (or (post-updated i) (post-published i)))

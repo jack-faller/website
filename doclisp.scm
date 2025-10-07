@@ -1,5 +1,6 @@
 (define-module (doclisp)
   #:use-module ((utilities iterators) #:prefix iter:)
+  #:use-module ((utilities sinks) #:prefix sink:)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-13)
@@ -62,7 +63,8 @@
    (peek-escape port)))
 
 (define (delimited-read end port table include-syntax? join?)
-  (iter:to-list!
+  (iter:collect!
+   (sink:list)
    (iter:iterator null recur ((first? #t))
      (let* ((dropped-space? (drop-space port))
             (peeked (peek-char port)))

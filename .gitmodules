@@ -1,3 +1,3 @@
 [submodule "libraries/scheme-utilities"]
 	path = libraries/scheme-utilities
-	url = https://github.com/jack-faller/scheme-utilities
+	url = git@github.com:jack-faller/scheme-utilities.git

@@ -1,4 +1,8 @@
-(use-modules (doclisp) (make) ((utilities iterators) #:prefix iter:))
+(use-modules (doclisp)
+             (make)
+             (utilities)
+             ((utilities sinks) #:prefix sink:)
+             ((utilities iterators) #:prefix iter:))
 (set-reader! doclisp-reader)
 {{page {version #1}}
  {wants-back-arrow? ##f}
@@ -26,5 +30,7 @@
           {style height: 0.75em\; position: relative\; top: 0.05em\;}
           {alt logo used to represent RSS and ATOM feeds}}}}}
   {ul
-   #@(iter:to-list! (iter:map (post->li #t) (iter:take 30 (iter:from-list (fluid-ref public-posts)))))
+   #@(->> (iter:take 30 (iter:from-list (fluid-ref public-posts)))
+          (iter:map (post->li #t))
+          (iter:collect! (sink:list)))
    {li {{a {href ./atom.xml}} See more …}}}}}

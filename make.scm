@@ -14,7 +14,7 @@
   #:use-module (srfi srfi-19)
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-69)
-  #:export (build template page link-heading public-posts post->li))
+  #:export (build template page link-heading public-posts page->li))
 
 (set-reader! doclisp-reader)
 
@@ -112,31 +112,31 @@
                       (else "th"))))
    (date->string date " ~B ~Y")))
 
-(define-record-type <post>
-  (make-post name parent uuid type type-pretty title published updated description body)
-  post?
-  (name         post-name         post-name!)
-  (parent       post-parent       post-parent!)
-  (uuid         post-uuid         post-uuid!)
-  (type         post-type         post-type!)
-  (type-pretty  post-type-pretty  post-type-pretty!)
-  (title        post-title        post-title!)
-  (published    post-published    post-published!)
-  (updated      post-updated      post-updated!)
-  (description  post-description  post-description!)
-  (body         post-body         post-body!))
-(define* (post-url post #:optional #:key full?)
-  (if (blank-repost? post)
-      {just #@(post-parent post)}
+(define-record-type <page>
+  (make-page name parent uuid type type-pretty title published updated description body)
+  page?
+  (name         page-name         page-name!)
+  (parent       page-parent       page-parent!)
+  (uuid         page-uuid         page-uuid!)
+  (type         page-type         page-type!)
+  (type-pretty  page-type-pretty  page-type-pretty!)
+  (title        page-title        page-title!)
+  (published    page-published    page-published!)
+  (updated      page-updated      page-updated!)
+  (description  page-description  page-description!)
+  (body         page-body         page-body!))
+(define* (page-url page #:optional #:key full?)
+  (if (blank-repost? page)
+      {just #@(page-parent page)}
       (string-append
        (if full?
            "https://jackfaller.xyz/"
            "/")
-       (post-type post) "/" (post-name post) ".html")))
+       (page-type page) "/" (page-name page) ".html")))
 
-(define (blank-repost? post)
-  (and (string= (post-type post) "repost")
-       (not (post-description post))))
+(define (blank-repost? page)
+  (and (string= (page-type page) "repost")
+       (not (page-description page))))
 
 (define (page . body) (template body))
 
@@ -162,67 +162,67 @@
 
 (define note #f)
 (define note-ref #f)
-(define (post-published->? a b)
-  (time>? (date->time-tai (post-published a)) (date->time-tai (post-published b))))
-(define (post-published-y/m/d post) (date->string (post-published post) "~y/~m/~d"))
-(define (post->li include-type?)
-  (lambda (post)
-    {li {{a {href #(post-url post)}}
-         #(post-published-y/m/d post)
-         #(and include-type? {just – #(post-type-pretty post)})
+(define (page-published->? a b)
+  (time>? (date->time-tai (page-published a)) (date->time-tai (page-published b))))
+(define (page-published-y/m/d page) (date->string (page-published page) "~y/~m/~d"))
+(define (page->li include-type?)
+  (lambda (page)
+    {li {{a {href #(page-url page)}}
+         #(page-published-y/m/d page)
+         #(and include-type? {just – #(page-type-pretty page)})
          –
-         #@(post-title post)}}))
+         #@(page-title page)}}))
 (define pretty-types
   (alist->hash-table
    '(("post" . "Blog Post")
      ("thought" . "Thought")
      ("repost" . "Repost")
      ("reply" . "Reply"))))
-(define (date-ref post-alist date-name)
-  (define date (assoc-ref post-alist date-name))
+(define (date-ref page-alist date-name)
+  (define date (assoc-ref page-alist date-name))
   (and date (read-date-string (car date))))
-(define (doclisp->post name form)
-  (define post (cdr form))
-  (make-post
+(define (doclisp->page name form)
+  (define page (cdr form))
+  (make-page
    name
-   (assoc-ref post "parent")
-   (car (assoc-ref post "uuid"))
+   (assoc-ref page "parent")
+   (car (assoc-ref page "uuid"))
    (caar form)
    (hash-table-ref pretty-types (caar form))
-   (assoc-ref post "title")
-   (date-ref post "published")
-   (date-ref post "updated")
-   (assoc-ref post "description")
-   (or (assoc-ref post "body") '())))
+   (assoc-ref page "title")
+   (date-ref page "published")
+   (date-ref page "updated")
+   (assoc-ref page "description")
+   (or (assoc-ref page "body") '())))
 (define (build-posts directory)
   (->>
    (dirfiles directory)
    (iter:map (scheme-file-functor
-              (lambda (name file) (doclisp->post name (load file)))))
+              (lambda (name file) (doclisp->page name (load file)))))
    (iter:filter identity)
    (iter:map
-    (lambda (post)
-      (unless (blank-repost? post)
+    (lambda (page)
+      (unless (blank-repost? page)
         (write-form-to-file
-         (string-append (post-type post) "/" (post-name post) ".html")
+         (string-append (page-type page) "/" (page-name page) ".html")
          html
          (template
           (cons*
-           {h1 {#(if (or (string= (post-type post) "reply")
-                         (string= (post-type post) "repost"))
-                     {a {href #@(or (post-parent post)
-                                    (error "Post missing parent: " (post-title post)))}}
+           {h1 {#(if (or (string= (page-type page) "reply")
+                         (string= (page-type page) "repost"))
+                     {a {href #@(or (page-parent page)
+                                    (error "Post missing parent: " (page-title page)))}}
                      "just")
-                #@(post-title post)}}
-           {p #@(post-description post)}
-           (post-body post))
-          #:blog-name (post-name post)
-          #:published (post-published post)
-          #:updated (post-updated post))))
-      post))
-   (iter:filter post-published)
+                #@(page-title page)}}
+           {p #@(page-description page)}
+           (page-body page))
+          #:blog-name (page-name page)
+          #:published (page-published page)
+          #:updated (page-updated page))))
+      page))
+   (iter:filter page-published)
    (iter:collect! (sink:list))
-   ((cut sort <> post-published->?))))
+   ((cut sort <> page-published->?))))
 
 (define (atom-feed-for posts this-page prev-archive next-archive)
   (define (format-date date) (regexp-substitute/global
@@ -234,9 +234,9 @@
          (iter:map date->time-tai)
          (iter:collect! (sink:reduce (lambda (a b) (if (compare a b) a b)) #f))
          (time-tai->date)))
-  (define earliest (-est post-published time<?))
+  (define earliest (-est page-published time<?))
   (define latest (-est
-                   (lambda (i) (or (post-updated i) (post-published i)))
+                   (lambda (i) (or (page-updated i) (page-published i)))
                    time>?))
   (define author
     {author
@@ -272,20 +272,20 @@
     #@(map
        (lambda (post)
          {entry
-          {{title {type text}} #@(post-title post)}
-          {{content {type text/html} {src #(post-url post #:full? #t)}}}
-          {published #(format-date (post-published post))}
-          #(and (post-updated post) {updated #(format-date (post-updated post))})
-          {{category {term #(post-type post)} {label #(post-type-pretty post)}}}
-          {id urn:uuid:#(post-uuid post)}
-          #(and (not (string= (post-type post) "repost"))
+          {{title {type text}} #@(page-title post)}
+          {{content {type text/html} {src #(page-url post #:full? #t)}}}
+          {published #(format-date (page-published post))}
+          #(and (page-updated post) {updated #(format-date (page-updated post))})
+          {{category {term #(page-type post)} {label #(page-type-pretty post)}}}
+          {id urn:uuid:#(page-uuid post)}
+          #(and (not (string= (page-type post) "repost"))
                 {just
                  #author
-                 {rights #(copyright (post-published post) (post-updated post))}
+                 {rights #(copyright (page-published post) (page-updated post))}
                  {{summary {type xhtml}}
                   {{div {xmlns http://www.w3.org/1999/xhtml}}
-                   #@(post-description post)}}})
-          {j:date #(post-published-y/m/d post)}})
+                   #@(page-description post)}}})
+          {j:date #(page-published-y/m/d post)}})
        posts)}})
 
 (define (build-pages ext path language loader)

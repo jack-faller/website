@@ -31,6 +31,6 @@
           {alt logo used to represent RSS and ATOM feeds}}}}}
   {ul
    #@(->> (iter:take 30 (iter:from-list (fluid-ref public-posts)))
-          (iter:map (post->li #t))
+          (iter:map (page->li #t))
           (iter:collect! (sink:list)))
    {li {{a {href ./atom.xml}} See more …}}}}}

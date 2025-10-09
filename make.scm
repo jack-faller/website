@@ -8,12 +8,12 @@
   #:use-module (ice-9 popen)
   #:use-module (ice-9 unicode)
   #:use-module (ice-9 receive)
-  #:use-module (ice-9 hash-table)
   #:use-module (ice-9 textual-ports)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-19)
   #:use-module (srfi srfi-26)
+  #:use-module (srfi srfi-69)
   #:export (build template page link-heading public-posts post->li))
 
 (set-reader! doclisp-reader)
@@ -45,7 +45,6 @@
                   (not link?))))
     {{span {class sectionmark}} #(link "§")}}})
 
-
 (define input-directory (make-fluid))
 (define output-directory (make-fluid))
 (define (input-file name) (string-append (fluid-ref input-directory) "/" name))
@@ -54,36 +53,6 @@
     (system* "mkdir" "-p" (dirname fname))
     fname))
 
-;; TODO: link footnote back up to point of reference.
-(define (footnotes)
-  (define count 0)
-  (define notes '())
-  (define (format-notes)
-    (if (= count 0)
-        {just}
-        {just
-         {hr}
-         {footer
-          #@(map
-             (lambda (vals)
-               (let ((id (car vals)) (count (cadr vals)) (text (cddr vals)))
-                 {{div {id {join footnote- #id}}}
-                  {{a #(link-href "footnote" id)}
-                   [#(number->string count)]}
-                  #@text
-                  #"<br>"}))
-             (reverse notes))}}))
-  (define (note-ref id)
-    (let ((count (cadr (assoc id notes))))
-      {msup {{a #(link-href "footnote" id)} #(number->string count)}}))
-  (define (note id . text)
-    (set! count (+ count 1))
-    (set! notes (cons (cons* id count text) notes))
-    (note-ref id))
-  (values
-   note
-   note-ref
-   format-notes))
 
 (define (copyright published updated)
   {just
@@ -181,10 +150,15 @@
         (f (basename file ".scm") file)
         #f)))
 (define (dirfiles dir)
-  (map
-   (lambda (x) (string-append (input-file dir) "/" x))
-   (scandir (input-file dir)
-            (lambda (file) (not (or (string= file ".") (string= file "..")))))))
+  (define dirname (input-file dir))
+  (->> (iter:iterator null ((port #f))
+         (define port* (or port (opendir dirname)))
+         (define out (readdir port*))
+         (if (eof-object? out)
+             (begin (closedir port*) (null))
+             (values out port*)))
+       (iter:remove (lambda (f) (or (string= f ".") (string= f ".."))))
+       (iter:map (lambda (f) (string-append dirname "/" f)))))
 
 (define note #f)
 (define note-ref #f)
@@ -207,53 +181,48 @@
 (define (date-ref post-alist date-name)
   (define date (assoc-ref post-alist date-name))
   (and date (read-date-string (car date))))
+(define (doclisp->post name form)
+  (define post (cdr form))
+  (make-post
+   name
+   (assoc-ref post "parent")
+   (car (assoc-ref post "uuid"))
+   (caar form)
+   (hash-table-ref pretty-types (caar form))
+   (assoc-ref post "title")
+   (date-ref post "published")
+   (date-ref post "updated")
+   (assoc-ref post "description")
+   (or (assoc-ref post "body") '())))
 (define (build-posts directory)
- (define posts
-   (filter-map
-    (scheme-file-functor
-     (lambda (name file)
-       (receive (n nr format-notes) (footnotes)
-         (set! note n)
-         (set! note-ref nr)
-         (let*
-             ((content (load file))
-              (post (cdr content))
-              (post (make-post
-                     name
-                     (assoc-ref post "parent")
-                     (car (assoc-ref post "uuid"))
-                     (caar content)
-                     (hash-ref pretty-types (caar content))
-                     (assoc-ref post "title")
-                     (date-ref post "published")
-                     (date-ref post "updated")
-                     (assoc-ref post "description")
-                     {#@(or (assoc-ref post "body") '()) #(format-notes)})))
-           (set! note #f)
-           (set! note-ref #f)
-           post))))
-    (dirfiles directory)))
- (for-each
-  (lambda (post)
-    (unless (blank-repost? post)
-      (write-form-to-file
-       (string-append (post-type post) "/" (post-name post) ".html")
-       html
-       (template
-        (cons*
-         {h1 {#(if (or (string= (post-type post) "reply")
-                       (string= (post-type post) "repost"))
-                   {a {href #@(or (post-parent post)
-                                  (error "Post missing parent: " (post-title post)))}}
-                   "just")
-              #@(post-title post)}}
-         {p #@(post-description post)}
-         (post-body post))
-        #:blog-name (post-name post)
-        #:published (post-published post)
-        #:updated (post-updated post)))))
-  posts)
- (sort (filter post-published posts) post-published->?))
+  (->>
+   (dirfiles directory)
+   (iter:map (scheme-file-functor
+              (lambda (name file) (doclisp->post name (load file)))))
+   (iter:filter identity)
+   (iter:map
+    (lambda (post)
+      (unless (blank-repost? post)
+        (write-form-to-file
+         (string-append (post-type post) "/" (post-name post) ".html")
+         html
+         (template
+          (cons*
+           {h1 {#(if (or (string= (post-type post) "reply")
+                         (string= (post-type post) "repost"))
+                     {a {href #@(or (post-parent post)
+                                    (error "Post missing parent: " (post-title post)))}}
+                     "just")
+                #@(post-title post)}}
+           {p #@(post-description post)}
+           (post-body post))
+          #:blog-name (post-name post)
+          #:published (post-published post)
+          #:updated (post-updated post))))
+      post))
+   (iter:filter post-published)
+   (iter:collect! (sink:list))
+   ((cut sort <> post-published->?))))
 
 (define (atom-feed-for posts this-page prev-archive next-archive)
   (define (format-date date) (regexp-substitute/global
@@ -320,7 +289,7 @@
        posts)}})
 
 (define (build-pages ext path language loader)
-  (for-each
+  (iter:for-each!
    (scheme-file-functor
     (lambda (name file)
       (write-form-to-file

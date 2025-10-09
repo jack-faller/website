@@ -1,4 +1,4 @@
-(use-modules (doclisp) (make))
+(use-modules (doclisp) (make) (maths))
 (set-reader! doclisp-reader)
 {{post {version #1}}
  {title Reciprocal Probability Events More Likely than Expected}

@@ -14,15 +14,9 @@
   #:use-module (srfi srfi-19)
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-69)
-  #:export (build template page link-heading public-posts page->li))
+  #:export (build doclisp-template page link-heading public-posts page->li))
 
 (set-reader! doclisp-reader)
-
-;; TODO: add open Graph tags.
-;; <meta property="og:type" content="">
-;; <meta property="og:title" content="">
-;; <meta property="og:description" content="">
-;; <meta property="og:image" content="">
 
 (define (cmd prog . args)
   (call-with-port (apply open-pipe* OPEN_BOTH prog args) get-string-all))
@@ -64,34 +58,6 @@
          "")}
    Jack Faller})
 
-(define* (template body #:key blog-name published updated (wants-back-arrow? #t))
-  {just
-   {{!DOCTYPE html}}
-   {html
-    {head
-     {title Jack Faller}
-     {{meta {charset utf-8}}}
-     {{link {rel stylesheet} {type text/css} {href /style.css}}}
-     {{link {rel blogroll} {type text/xml} {href /blogroll.xml}}}
-     {{link {rel alternate} {type application/atom+xml} {href /atom.xml}}}
-     #(and blog-name
-           {just
-            {script const blog-name =
-                    #(string-append "\"" blog-name "\"")}
-            {{script {src comment-script.js} defer}}})}
-    {body
-     {main
-      {header
-       #(and wants-back-arrow?
-             {{a {href /index.html} {title home} {class backarrow}} ←})
-       #(and
-         blog-name
-         (if published
-             {{div {class date}} #(date-format published)}
-             {{div {class date}} DRAFT}))}
-      #@body
-      #(and published
-            {{footer {id copy-notice}} #(copyright published updated)})}}}})
 (define (code-block file-name)
   {pre {{code {class block}}
         {raw
@@ -112,33 +78,119 @@
                       (else "th"))))
    (date->string date " ~B ~Y")))
 
+(define-record-type <path>
+  (make-path directory name extension)
+  path?
+  (directory path-directory)
+  (name      path-name)
+  (extension path-extension))
+
+(define (path-is? path directory name extension)
+  (and (string= name (path-name path))
+       (string= directory (path-directory path))
+       (string= extension (path-extension path))))
+
 (define-record-type <page>
-  (make-page name parent uuid type type-pretty title published updated description body)
+  (make-page path parent uuid type type-pretty title published updated description body)
   page?
-  (name         page-name         page-name!)
-  (parent       page-parent       page-parent!)
-  (uuid         page-uuid         page-uuid!)
-  (type         page-type         page-type!)
-  (type-pretty  page-type-pretty  page-type-pretty!)
-  (title        page-title        page-title!)
-  (published    page-published    page-published!)
-  (updated      page-updated      page-updated!)
-  (description  page-description  page-description!)
-  (body         page-body         page-body!))
-(define* (page-url page #:optional #:key full?)
+  (path        page-path        page-path!)
+  (parent      page-parent      page-parent!)
+  (uuid        page-uuid        page-uuid!)
+  (type        page-type        page-type!)
+  (type-pretty page-type-pretty page-type-pretty!)
+  (title       page-title       page-title!)
+  (published   page-published   page-published!)
+  (updated     page-updated     page-updated!)
+  (description page-description page-description!)
+  (body        page-body        page-body!))
+
+(define* (page-url page #:optional #:key full? omit-leading-/?)
   (if (blank-repost? page)
       {just #@(page-parent page)}
       (string-append
-       (if full?
-           "https://jackfaller.xyz/"
+       (cond (full? "https://jackfaller.xyz/")
+             (omit-leading-/? "/")
+             (else ""))
+       (path-directory (page-path page))
+       (if (string= "" (path-directory (page-path page)))
+           ""
            "/")
-       (page-type page) "/" (page-name page) ".html")))
+       (path-name (page-path page))
+       (if (string= (path-extension (page-path page)) "html")
+           ""
+           (string-append "." (path-extension (page-path page)))))))
+
+;; TODO: figure out error if I declare this above <page>
+(define doclisp-template
+  (case-lambda
+    ((doclisp) (doclisp-template #f doclisp))
+    ((path doclisp)
+     (template (doclisp->page path doclisp)))))
+(define (template page)
+  (define article? (is-article? page))
+  {just
+   {{!DOCTYPE html}}
+   {{html {prefix og: https://ogp.me/ns\# article: https://ogp.me/ns/article\#}}
+    {head
+     {title Jack Faller}
+     {{meta {charset utf-8}}}
+     #(and (page-path page)
+           {{meta {property og:url} {content #(page-url page #:full? #t)}}})
+     {{meta {property og:site_name} {content Jack Faller}}}
+     ;; TODO: Make a version of the tiling pattern without dithering and use
+     ;; it here as the og:image tag.
+     #(and
+       (page-description page)
+       {{meta {property og:description}
+              {content
+               #@(if (length> (page-description page) 30)
+                     (append (->> (iter:from-list (page-description page))
+                                  (iter:take 30)
+                                  (iter:collect! (sink:list)))
+                             {#'join …})
+                     (page-description page))}}})
+     #(if article?
+          {just {{meta {property og:type} {content article:article}}}
+                #(and
+                  (page-published page)
+                  {{meta {property article:published_time}
+                         {content #(date->string (page-published page) "~4")}}})
+                #(and
+                  (page-updated page)
+                  {{meta {property article:updated_time}
+                         {content #(date->string (page-updated page) "~4")}}})}
+          {{meta {property og:type} {content website}}})
+     {{meta {property og:title} {content #@(page-title page)}}}
+     {{link {rel stylesheet} {type text/css} {href /style.css}}}
+     {{link {rel blogroll} {type text/xml} {href /blogroll.xml}}}
+     {{link {rel alternate} {type application/atom+xml} {href /atom.xml}}}}
+    {body
+     {main
+      {header
+       #(and (page-path page)
+             (not (path-is? (page-path page) "" "index" "html"))
+             {{a {href /index.html} {title home} {class backarrow}} ←})
+       #(and
+         article?
+         (if (page-published page)
+             {{div {class date}} #(date-format (page-published page))}
+             {{div {class date}} DRAFT}))}
+      #@(cons*
+         {h1 {#(if (or (string= (page-type page) "reply")
+                       (string= (page-type page) "repost"))
+                   {a {href #@(or (page-parent page)
+                                  (error "Post missing parent: " (page-title page)))}}
+                   "just")
+              #@(page-title page)}}
+         (and (page-description page) {p #@(page-description page)})
+         (page-body page))
+      #(and (page-published page)
+            {{footer {id copy-notice}}
+             #(copyright (page-published page) (page-updated page))})}}}})
 
 (define (blank-repost? page)
   (and (string= (page-type page) "repost")
        (not (page-description page))))
-
-(define (page . body) (template body))
 
 (define (write-form-to-file name language sexp)
   (call-with-output-file (output-file name)
@@ -178,47 +230,37 @@
      ("thought" . "Thought")
      ("repost" . "Repost")
      ("reply" . "Reply"))))
+(define (is-article? page)
+  (hash-table-ref/default pretty-types (page-type page) #f))
 (define (date-ref page-alist date-name)
   (define date (assoc-ref page-alist date-name))
   (and date (read-date-string (car date))))
-(define (doclisp->page name form)
+(define (doclisp->page path form)
   (define page (cdr form))
   (make-page
-   name
+   path
    (assoc-ref page "parent")
-   (car (assoc-ref page "uuid"))
+   (let ((a (assoc-ref page "uuid"))) (and a (car a)))
    (caar form)
-   (hash-table-ref pretty-types (caar form))
+   (hash-table-ref/default pretty-types (caar form) #f)
    (assoc-ref page "title")
    (date-ref page "published")
    (date-ref page "updated")
    (assoc-ref page "description")
    (or (assoc-ref page "body") '())))
+(define (doclisp->post name form)
+  (doclisp->page (make-path (caar form) name "html") form))
 (define (build-posts directory)
   (->>
    (dirfiles directory)
    (iter:map (scheme-file-functor
-              (lambda (name file) (doclisp->page name (load file)))))
+              (lambda (name file) (doclisp->post name (load file)))))
    (iter:filter identity)
    (iter:map
     (lambda (page)
       (unless (blank-repost? page)
         (write-form-to-file
-         (string-append (page-type page) "/" (page-name page) ".html")
-         html
-         (template
-          (cons*
-           {h1 {#(if (or (string= (page-type page) "reply")
-                         (string= (page-type page) "repost"))
-                     {a {href #@(or (page-parent page)
-                                    (error "Post missing parent: " (page-title page)))}}
-                     "just")
-                #@(page-title page)}}
-           {p #@(page-description page)}
-           (page-body page))
-          #:blog-name (page-name page)
-          #:published (page-published page)
-          #:updated (page-updated page))))
+         (page-url page #:omit-leading-/? #t) html (template page)))
       page))
    (iter:filter page-published)
    (iter:collect! (sink:list))
@@ -305,14 +347,9 @@
   (fluid-set! public-posts (build-posts "posts"))
 
   (build-pages "html" "" html
-                (lambda (file)
-                  (define content (cdr (load file)))
-                  (template
-                   (assoc-ref content "body")
-                   #:wants-back-arrow?
-                   (car (or (assoc-ref content "wants-back-arrow?") '(#t)))
-                   #:published (date-ref content "published")
-                   #:updated (date-ref content "updated"))))
+               (lambda (file)
+                 (doclisp-template (make-path "" (basename file ".scm") "html")
+                                   (load file))))
   (build-pages "xsl" "" xslt
                 (lambda (file)
                   (cons "just" (assoc-ref (cdr (load file)) "body"))))

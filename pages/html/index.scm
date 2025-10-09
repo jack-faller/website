@@ -7,8 +7,8 @@
 {{page {version #1}}
  {wants-back-arrow? ##f}
  {published #"2025/10/07 18:20 +0100"}
+ {title Here Lies That Which Is Digital of Jack Faller}
  {body
-  {h1 Here Lies That Which Is Digital of Jack Faller}
   #(link-heading 2 "about" "About Me and This Site")
   {p
    Hi, I'm Jack Faller. (As you may have surmised from title of this page.)

@@ -167,8 +167,8 @@
     {body
      {main
       {header
-       #(and (page-path page)
-             (not (path-is? (page-path page) "" "index" "html"))
+       #(and (not (and (page-path page)
+                       (path-is? (page-path page) "" "index" "html")))
              {{a {href /index.html} {title home} {class backarrow}} ←})
        #(and
          article?

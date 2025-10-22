@@ -319,10 +319,14 @@
              (put (car i) port)
              (put "=\"" port)
              (regexp-substitute/global
-              port "\""
+              port "[\"<>]"
               (call-with-output-string
                 (lambda (port) (write-forms (cdr i) language port)))
-              'pre "&quot;" 'post)
+              'pre
+              (lambda (m)
+                (case (string-ref (match:substring m) 0)
+                  ((#\<) "&lt;") ((#\>) "&gt;") ((#\") "&quot;")))
+              'post)
              (put "\"" port))))
      attributes)
     (if (and (null? body) (not needs-empty-body?))

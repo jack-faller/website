@@ -417,12 +417,16 @@
 (define self-closing-html-tags
   '("area" "base" "br" "col" "embed" "hr" "img" "input" "link" "meta" "param"
     "source" "track" "wbr" "!DOCTYPE"))
+(define body-required-html-tags
+  '("script" "iframe"))
 (define html
-  (let ((tags (alist->hash-table
-               (cons
-                (cons "script" (xml-tag-writer #:needs-empty-body? #t))
-                (map (lambda (x) (cons x (xml-tag-writer #:should-self-close? #t)))
-                     self-closing-html-tags))))
+  (let* ((empty-body-writer (xml-tag-writer #:needs-empty-body? #t))
+         (empty-body (lambda (name) (cons name empty-body-writer)))
+         (tags (alist->hash-table
+                (append!
+                 (map empty-body body-required-html-tags)
+                 (map (lambda (x) (cons x (xml-tag-writer #:should-self-close? #t)))
+                      self-closing-html-tags))))
         (parent (language-write-tag xml)))
     (language-augment
      xml

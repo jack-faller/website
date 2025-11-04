@@ -36,81 +36,81 @@
 }
 
 :root {
-	--content-width: 750px;
-	--content-margin: 30px;
-	--page-bg: rgba(255,255,255,0.9);
-	--code-bg: rgb(215,215,215);
+    --content-width: 750px;
+    --content-margin: 30px;
+    --page-bg: rgba(255,255,255,0.9);
+    --code-bg: rgb(215,215,215);
 }
 
 body {
-	font-family: Cochineal, serif;
-	font-size: 23px;
-	margin: 0px;
-	background-image: url('images/tiling_pattern.png');
-	background-attachment: fixed;
+    font-family: Cochineal, serif;
+    font-size: 23px;
+    margin: 0px;
+    background-image: url('images/tiling_pattern.png');
+    background-attachment: fixed;
 
-	quotes: "\201C" "\201D";
+    quotes: "\201C" "\201D";
 
-	display: flex;
-	justify-content: center;
-	padding-top: min(8vw, 50px);
-	padding-bottom: min(8vw, 50px);
+    display: flex;
+    justify-content: center;
+    padding-top: min(8vw, 50px);
+    padding-bottom: min(8vw, 50px);
 }
 
 main {
-	position: relative;
-	width: min(var(--content-width), 80vw + var(--content-margin));
-	padding: var(--content-margin);
-	background-color: var(--page-bg);
+    position: relative;
+    width: min(var(--content-width), 80vw + var(--content-margin));
+    padding: var(--content-margin);
+    background-color: var(--page-bg);
 }
 
 h1 {
-	text-align: center;
+    text-align: center;
 }
 
 .headinglink {
-	color: black;
-	text-decoration: none;
+    color: black;
+    text-decoration: none;
 }
 .headinglink:visited {
-	color: black;
+    color: black;
 }
 .sectionmark {
-	display: none;
+    display: none;
 }
 .headinglink:hover ~ .sectionmark {
-	display: inline;
+    display: inline;
 }
 
 .backarrow {
-	text-decoration: none;
-	position: absolute;
-	color: inherit;
+    text-decoration: none;
+    position: absolute;
+    color: inherit;
 }
 .backarrow:visited {
-	color: inherit;
+    color: inherit;
 }
 .date {
-	right: var(--content-margin);
-	position: absolute;
+    right: var(--content-margin);
+    position: absolute;
 }
 #copy-notice {
-	text-align: right;
-	font-size: small;
+    text-align: right;
+    font-size: small;
 }
 
 p {
-	margin: 0;
+    margin: 0;
     text-indent: 1.5em;
     text-align: justify;
     text-wrap: pretty;
 }
 
 a {
-	color: #000099;
+    color: #000099;
 }
 a:visited {
-	color: #480048;
+    color: #480048;
 }
 
 pre {
@@ -126,13 +126,13 @@ code.block {
 }
 
 code {
-	font-size: 18px;
-	border-radius: 5px;
-	background-color: var(--code-bg);
+    font-size: 18px;
+    border-radius: 5px;
+    background-color: var(--code-bg);
 }
 
 math {
-	font-family: STIXTwoMath;
+    font-family: STIXTwoMath;
 }
 .no-bullet {
     padding: 0;
@@ -141,11 +141,11 @@ math {
     list-style-type: none;
 }
 .math-stack-right {
-	math-style: normal;
-	text-align: left;
+    math-style: normal;
+    text-align: left;
 }
 .math-stack-left {
-	math-style: normal;
-	/* This makes the alignment worse since it isn't implemented. */
-	/* text-align: right; */
+    math-style: normal;
+    /* This makes the alignment worse since it isn't implemented. */
+    /* text-align: right; */
 }

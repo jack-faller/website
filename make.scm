@@ -14,7 +14,7 @@
   #:use-module (srfi srfi-19)
   #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-69)
-  #:export (build doclisp-template page link-heading public-posts page->li))
+  #:export (build doclisp-template page link-heading public-posts page->li code-block))
 
 (set-reader! doclisp-reader)
 
@@ -116,9 +116,7 @@
            ""
            "/")
        (path-name (page-path page))
-       (if (string= (path-extension (page-path page)) "html")
-           ""
-           (string-append "." (path-extension (page-path page)))))))
+       (string-append "." (path-extension (page-path page))))))
 
 ;; TODO: figure out error if I declare this above <page>
 (define doclisp-template

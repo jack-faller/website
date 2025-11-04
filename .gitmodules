@@ -1,3 +1,9 @@
 [submodule "libraries/scheme-utilities"]
 	path = libraries/scheme-utilities
 	url = git@github.com:jack-faller/scheme-utilities.git
+[submodule "libraries/tree-sitter-scheme"]
+	path = libraries/tree-sitter-scheme
+	url = git@github.com:6cdh/tree-sitter-scheme.git
+[submodule "libraries/tree-sitter-c"]
+	path = libraries/tree-sitter-c
+	url = git@github.com:tree-sitter/tree-sitter-c.git

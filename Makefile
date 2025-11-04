@@ -1,5 +1,7 @@
 .PHONY: all clean send image
 
+export CC=gcc
+
 all: servdir
 send: servdir nginx-token
 	rsync --recursive --compress servdir/ "$$(cat server-url.txt):/website/" --delete-after
@@ -10,8 +12,9 @@ servdir: generated generated/blogroll.xml image $(shell find static) server-url.
 	rm -rf servdir || true
 	cp -rT static servdir
 	cp -rT generated/ servdir
-generated: $(shell find pages posts) doclisp.scm make.scm maths.scm
+generated: $(shell find pages posts) doclisp.scm make.scm maths.scm highlight.sh
 	rm -rf "$@"
+	echo '{"parser-directories":["'$$PWD'/libraries"]}' > build/ts-config.json
 	./guile.sh -e "(@ (make) build)" make.scm . "$@"
 generated/blogroll.xml: blogroll.opml generated
 	mkdir -p "$$(dirname "$@")"

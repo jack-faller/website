@@ -59,11 +59,9 @@
    Jack Faller})
 
 (define (code-block file-name)
-  {pre {{code {class block}}
-        {raw
-         #(cmd "highlight" (input-file (string-append "posts/" file-name))
-               "-O" "html" "--inline-css" "--fragment"
-               "--line-numbers" "--line-number-length" "3")}}})
+  (define file (input-file (string-append "posts/" file-name)))
+  {pre {{code {class block}} {raw #(cmd "./highlight.sh" file)}}})
+
 (define date-string-format "~Y/~m/~d ~H:~M ~z")
 (define (current-date-string) (date->string (current-date) date-string-format))
 (define (read-date-string date) (string->date date date-string-format))

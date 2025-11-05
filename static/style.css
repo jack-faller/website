@@ -36,19 +36,24 @@
 }
 
 :root {
-    --content-width: 750px;
+	/* If this is changed, update @media queries. */
+	--content-width: 750px;
     --content-margin: 30px;
     --page-bg: rgba(255,255,255,0.9);
     --code-bg: rgb(215,215,215);
 }
-
+html {
+	/* Account for dynamic viewports on mobile. */
+	min-height: 100vh;
+	min-height: -webkit-fill-available;
+	min-height: 100dvh;
+    background-image: url('images/tiling_pattern.png');
+	background-attachment: fixed;
+}
 body {
     font-family: Cochineal, serif;
     font-size: 23px;
     margin: 0px;
-    background-image: url('images/tiling_pattern.png');
-    background-attachment: fixed;
-
     quotes: "\201C" "\201D";
 
     display: flex;
@@ -113,11 +118,20 @@ a:visited {
     color: #480048;
 }
 
-pre {
+pre.block {
 	white-space: pre-wrap;
 	word-break: break-all;
 	border-radius: 5px;
 	background-color: var(--code-bg);
+}
+/* Note this should be --content-width but variables don't work here. */
+@media (max-width : 750px) {
+	pre.block {
+		word-break: keep-all;
+		white-space: pre;
+		overflow-x: auto;
+		overflow-y: hidden;
+	}
 }
 
 code.block {
@@ -133,6 +147,8 @@ code {
 
 math {
     font-family: STIXTwoMath;
+	overflow-x: auto;
+	overflow-y: hidden;
 }
 .no-bullet {
     padding: 0;

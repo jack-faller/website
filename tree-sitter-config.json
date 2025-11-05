@@ -1,0 +1,64 @@
+{
+  "parser-directories": [
+    "{{PROJECT_ROOT}}/libraries"
+  ],
+  "theme": {
+    "property": 124,
+    "comment": {
+      "italic": true,
+      "color": 245
+    },
+    "property.builtin": {
+      "bold": true,
+      "color": 124
+    },
+    "punctuation.special": 239,
+    "module": 136,
+    "string": 28,
+    "variable.builtin": {
+      "color": 252,
+      "bold": true
+    },
+    "constant.builtin": {
+      "color": 94,
+      "bold": true
+    },
+    "variable.parameter": {
+      "color": 252,
+      "underline": true
+    },
+    "function.builtin": {
+      "color": 26,
+      "bold": true
+    },
+    "keyword": 56,
+    "string.special": 30,
+    "punctuation.bracket": 239,
+    "type.builtin": {
+      "color": 23,
+      "bold": true
+    },
+    "variable": 252,
+    "tag": 18,
+    "label": 18,
+    "punctuation.delimiter": 239,
+    "attribute": {
+      "color": 124,
+      "italic": true
+    },
+    "type": 23,
+    "embedded": null,
+    "constructor": 136,
+    "punctuation": 239,
+    "operator": {
+      "color": 239,
+      "bold": true
+    },
+    "function": 26,
+    "number": {
+      "color": 94,
+      "bold": true
+    },
+    "constant": 94
+  }
+}

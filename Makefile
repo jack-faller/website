@@ -12,9 +12,9 @@ servdir: generated generated/blogroll.xml image $(shell find static) server-url.
 	rm -rf servdir || true
 	cp -rT static servdir
 	cp -rT generated/ servdir
-generated: $(shell find pages posts) doclisp.scm make.scm maths.scm highlight.sh
+generated: $(shell find pages posts) doclisp.scm make.scm maths.scm highlight.sh tree-sitter-config.json
 	rm -rf "$@"
-	echo '{"parser-directories":["'$$PWD'/libraries"]}' > build/ts-config.json
+	sed "s#{{PROJECT_ROOT}}#$$PWD#" tree-sitter-config.json > build/tree-sitter-config.json
 	./guile.sh -e "(@ (make) build)" make.scm . "$@"
 generated/blogroll.xml: blogroll.opml generated
 	mkdir -p "$$(dirname "$@")"

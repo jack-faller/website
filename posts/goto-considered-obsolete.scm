@@ -10,7 +10,7 @@
   Such reckless use of control flow is clearly objectionable.
   Modern goto is much less powerful than that, and mainly causes issues in languages with manual memory management due to variables being initialised to unexpected values (this makes its omission from Java even more questionable as Java doesn't have manual memory management).
   But I should like to make a stronger thesis, that goto as a programming construct is made entirely obsolete by common PL techniques and has been so for many years.
-  I will show how these techniques can likily already be used in C using common compiler extensions.
+  I will show how these techniques can likely already be used in C using common compiler extensions.
   Finally, I shall present a rough draft of how such a design may be integrated well into a future C-style language.}
  {body
   #(link-heading 2 "functional-goto" "Functional Goto")

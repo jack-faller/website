@@ -130,6 +130,7 @@
     {head
      {title Jack Faller}
      {{meta {charset utf-8}}}
+     {{meta {name viewport} {content width=device-width, initial-scale=1.0}}}
      #(and (page-path page)
            {{meta {property og:url} {content #(page-url page #:full? #t)}}})
      {{meta {property og:site_name} {content Jack Faller}}}

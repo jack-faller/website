@@ -37,7 +37,7 @@
 
 :root {
 	/* If this is changed, update @media queries. */
-	--content-width: 40rem;
+	--content-width: 39rem;
 	--content-margin: 1.5rem;
 	--page-bg: rgba(255,255,255,0.9);
 	--code-bg: rgb(215,215,215);
@@ -125,7 +125,7 @@ pre.block {
 	background-color: var(--code-bg);
 }
 /* Note this should be --content-width but variables don't work here. */
-@media (max-width : 40rem) {
+@media (max-width : 39rem) {
 	pre.block {
 		word-break: keep-all;
 		white-space: pre;

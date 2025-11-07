@@ -132,9 +132,6 @@ pre.block {
 		overflow-x: auto;
 		overflow-y: hidden;
 	}
-	code {
-		font-size: initial;
-	}
 }
 
 code.block {
@@ -142,6 +139,7 @@ code.block {
 }
 
 code {
+	font-size: initial;
 	border-radius: 5px;
 	background-color: var(--code-bg);
 }

@@ -37,8 +37,8 @@
 
 :root {
 	/* If this is changed, update @media queries. */
-	--content-width: 750px;
-	--content-margin: 30px;
+	--content-width: 40rem;
+	--content-margin: 1.5rem;
 	--page-bg: rgba(255,255,255,0.9);
 	--code-bg: rgb(215,215,215);
 }
@@ -52,7 +52,6 @@ html {
 }
 body {
 	font-family: Cochineal, serif;
-	font-size: 23px;
 	margin: 0px;
 	quotes: "\201C" "\201D";
 
@@ -125,7 +124,7 @@ pre.block {
 	background-color: var(--code-bg);
 }
 /* Note this should be --content-width but variables don't work here. */
-@media (max-width : 750px) {
+@media (max-width : 40rem) {
 	pre.block {
 		word-break: keep-all;
 		white-space: pre;
@@ -135,12 +134,10 @@ pre.block {
 }
 
 code.block {
-	font-size: 18px;
 	background-color: transparent;
 }
 
 code {
-	font-size: 18px;
 	border-radius: 5px;
 	background-color: var(--code-bg);
 }

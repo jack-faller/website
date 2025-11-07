@@ -132,6 +132,9 @@ pre.block {
 		overflow-x: auto;
 		overflow-y: hidden;
 	}
+	code {
+		font-size: initial;
+	}
 }
 
 code.block {

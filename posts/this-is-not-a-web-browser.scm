@@ -12,7 +12,7 @@
    This site is a Web site as it is just a collection of static XML/HTML documents.
    Yet I've concluded it's purely incidental that modern Web browsers are capable of accessing my website.
    The Web is no longer a concern for them, people like me are second class citizens of the internet.
-   The modern browser exists as an application toolkit view that just happens to also display HTML documents.
+   The modern browser exists as an application toolkit that just happens to also display HTML documents.
    I had always looked with some confusion at other web standards such as Gopher, that promise to replace the standard HTML+HTTP paradigm, but now I see a little more sense in them.}
   {p
    Removing XSLT may not seem so significant, but I think it would essentially be the death of the Web.
@@ -27,6 +27,6 @@
    Are many people writing their own HTML these days?
    Surely not.
    (Well, I write this site in a language which is basically HTML, but I don't really count as a person.)
-   But you will soon need dynamic content to reach the basic level of {q a usable website}—one that doesn't show you strange error messages with unformatted XML if you click the wrong link.
+   But you will soon need dynamic content to reach the basic level of {q a usable website}—a set of blog posts and feed that doesn't show you strange error messages with unformatted XML if you click the wrong link.
    I struggle not to view this as a kind of end for the Web.
    The pretence of {q Web browser} is being dropped completely, and the concerns of Web users totally disregarded.}}}

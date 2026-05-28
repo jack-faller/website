@@ -224,7 +224,7 @@
      ;; TODO: Maybe make a version of the tiling pattern without dithering and
      ;; use it here as the og:image.
      ;; Also have og:logo and make it the same as in Atom feed.
-     {{meta {property og:image} {content https://jackfaller.xyz/og-thumbnail.png}}}
+     {{meta {property og:image} {content https://jackfaller.xyz/images/og-thumbnail.png}}}
      {{meta {property og:image:width} {content 1200}}}
      {{meta {property og:image:height} {content 630}}}
      {{meta {property og:image:alt} {content A picture of the website name {q jackfaller.xyz} and its background, a tiling dithered image of spheres connected by beams.}}}
@@ -277,7 +277,15 @@
       {insert-footnotes}
       #(and (page-published page)
             {{footer {id copy-notice}}
-             #(copyright (page-published page) (page-updated page))})}}}})
+             #(copyright (page-published page) (page-updated page))})}
+     {script
+      #"window.addEventListener('scroll', function () {
+    const scroll_range_px = 300;
+    document.body.style.setProperty('--badge-visibility', Math.min(window.pageYOffset, scroll_range_px) / scroll_range_px);
+}, false);"}
+     {{a {id not-by-ai-badge} {href https://notbyai.fyi/}}
+      {{img {src /images/Written-By-a-Human-Not-By-AI-Badge-black.svg}
+            {alt A small badge with a smily face icon that reads {q written by a human, not AI.}}}}}}}})
 
 (define (blank-repost? page)
   (and (string= (page-type page) "repost")

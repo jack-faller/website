@@ -185,3 +185,21 @@ math {
 	/* This makes the alignment worse since it isn't implemented. */
 	/* text-align: right; */
 }
+
+#not-by-ai-badge, #not-by-ai-badge-dummy {
+	bottom: 10px;
+	left: 10px;
+
+	position: fixed;
+	/* Animate over half the time as setting delay equal to negative the full
+       duration causes the animation to go back to the start. */
+	animation: badge-fade 2s linear;
+	animation-play-state: paused;
+	animation-delay: calc(var(--badge-visibility) * -1s);
+}
+@keyframes badge-fade {
+  50%, 100% {
+    opacity: 0;
+	visibility: hidden;
+  }
+}

@@ -7,6 +7,7 @@
 {{page {version #1}}
  {wants-back-arrow? ##f}
  {published #"2025/10/07 18:20 +0100"}
+ {updates #"2026/05/28 23:08 +0100"}
  {title Here Lies That Which Is Digital of Jack Faller}
  {body
   #(link-heading 2 "about" "About Me and This Site")
@@ -28,7 +29,7 @@
     Activity
     {{img {src /images/feed-icon.svg}
           {style height: 0.75em\; position: relative\; top: 0.05em\;}
-          {alt logo used to represent RSS and ATOM feeds}}}}}
+          {alt Logo used to represent RSS and ATOM feeds.}}}}}
   {ul
    #@(->> (iter:take 30 (iter:from-list (fluid-ref public-posts)))
           (iter:map (page->li #t))

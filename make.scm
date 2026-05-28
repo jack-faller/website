@@ -17,6 +17,8 @@
   #:use-module (srfi srfi-69)
   #:export (build doclisp-template page link-heading public-posts page->li code-block))
 
+;; TODO: Higher definition and SVG favicons.
+
 (set-reader! doclisp-reader)
 
 (define (cmd prog . args)
@@ -210,7 +212,8 @@
   (define article? (is-article? page))
   {just
    {{!DOCTYPE html}}
-   {{html {prefix og: https://ogp.me/ns\# article: https://ogp.me/ns/article\#}}
+   {{html {lang en-GB}
+          {prefix og: https://ogp.me/ns\# article: https://ogp.me/ns/article\#}}
     {head
      {title Jack Faller}
      {{meta {charset utf-8}}}
@@ -218,8 +221,14 @@
      #(and (page-path page)
            {{meta {property og:url} {content #(page-url page #:full? #t)}}})
      {{meta {property og:site_name} {content Jack Faller}}}
-     ;; TODO: Make a version of the tiling pattern without dithering and use
-     ;; it here as the og:image tag.
+     ;; TODO: Maybe make a version of the tiling pattern without dithering and
+     ;; use it here as the og:image.
+     ;; Also have og:logo and make it the same as in Atom feed.
+     {{meta {property og:image} {content https://jackfaller.xyz/og-thumbnail.png}}}
+     {{meta {property og:image:width} {content 1200}}}
+     {{meta {property og:image:height} {content 630}}}
+     {{meta {property og:image:alt} {content A picture of the website name {q jackfaller.xyz} and its background, a tiling dithered image of spheres connected by beams.}}}
+     {{meta {property og:locale} {content en_GB}}}
      #(and
        (page-description page)
        {{meta {property og:description}

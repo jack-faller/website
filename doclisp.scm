@@ -431,16 +431,16 @@
     (language-augment
      xml
      #:write-tag
-     (lambda (name attributes body language form)
-       ((hash-table-ref/default tags name parent) name attributes body language form)))))
+     (lambda (name attributes body language port)
+       ((hash-table-ref/default tags name parent) name attributes body language port)))))
 (define xslt
   (let ((parent (language-write-tag xml)))
     (language-augment
      xml
      #:write-tag
-     (lambda (name attributes body language form)
+     (lambda (name attributes body language port)
        (unless (string-ci= name "!DOCTYPE")
-         (parent name attributes body language form))))))
+         (parent name attributes body language port))))))
 (define (escaped language)
   (define old-escaper (language-escaper language))
   (language-augment

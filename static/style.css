@@ -42,6 +42,7 @@
 	--page-bg: rgba(255,255,255,0.9);
 	--code-bg: rgb(215,215,215);
 	--text-indent: 1.5em;
+	--badge-fade-progress: 0;
 }
 html {
 	/* Account for dynamic viewports on mobile. */
@@ -191,14 +192,12 @@ math {
 	left: 10px;
 
 	position: fixed;
-	/* Animate over half the time as setting delay equal to negative the full
-       duration causes the animation to go back to the start. */
-	animation: badge-fade 2s linear;
+	animation: badge-fade 5s forwards;
 	animation-play-state: paused;
-	animation-delay: calc(var(--badge-visibility) * -1s);
+	animation-delay: calc(var(--badge-fade-progress) * -5s);
 }
 @keyframes badge-fade {
-  50%, 100% {
+  to {
     opacity: 0;
 	visibility: hidden;
   }

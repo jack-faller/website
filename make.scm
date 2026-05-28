@@ -5,6 +5,7 @@
   #:use-module (doclisp)
   #:use-module (ice-9 ftw)
   #:use-module (ice-9 regex)
+  #:use-module (ice-9 match)
   #:use-module (ice-9 popen)
   #:use-module (ice-9 unicode)
   #:use-module (ice-9 receive)
@@ -47,6 +48,89 @@
     (system* "mkdir" "-p" (dirname fname))
     fname))
 
+(define-record-type <footnote>
+  (make-footnote refcount numbers content)
+  footnote?
+  (refcount footnote-refcount set-footnote-refcount!)
+  (numbers footnote-numbers set-footnote-numbers!)
+  (content footnote-content set-footnote-content!))
+(define-record-type <footnotes>
+  (make-footnotes* number table)
+  footnotes?
+  (number footnotes-number set-footnotes-number!)
+  (table footnotes-table))
+(define (footnotes-get footnotes id)
+  (hash-table-ref/default (footnotes-table footnotes) id #f))
+(define (footnotes-set! footnotes id footnote)
+  (hash-table-set! (footnotes-table footnotes) id footnote))
+(define (footnotes-count footnotes)
+  (hash-table-size (footnotes-table footnotes)))
+(define (make-footnotes)
+  (make-footnotes* 0 (make-hash-table)))
+(define (footnotes-next-number! footnotes)
+  (define number (++ (footnotes-number footnotes)))
+  (set-footnotes-number! footnotes number)
+  number)
+(define (copy-footnote footnote)
+  (make-footnote
+   (footnote-refcount footnote)
+   (footnote-numbers footnote)
+   (footnote-content footnote)))
+(define (copy-footnotes footnotes)
+  (define new (make-hash-table))
+  (hash-table-walk (footnotes-table footnotes)
+                   (cut hash-table-set! new <> (copy-footnote <>)))
+  (make-footnotes*
+   (footnotes-number footnotes)
+   new))
+(define (footnote-back-ref-id id i)
+  (string-append "back-from-footnote-" id "-" (number->string i)))
+(define (footnote footnotes id . content)
+  (define footnote (footnotes-get footnotes id))
+  (unless footnote
+    (set! footnote (make-footnote 0 '() '()))
+    (footnotes-set! footnotes id footnote))
+  (unless (null? (footnote-content footnote))
+    (error "Duplicate definition for footnote." id (footnote-content footnote)))
+  (set-footnote-content! footnote content)
+  #f)
+(define (footnote-ref footnotes id . content)
+  (unless (null? content)
+    (apply footnote footnotes id content))
+  (define note (footnotes-get footnotes id))
+  (unless note
+    (set! note (make-footnote 0 '() content))
+    (footnotes-set! footnotes id note))
+  (define refcount (++ (footnote-refcount note)))
+  (set-footnote-refcount! note refcount)
+  (define number (footnotes-next-number! footnotes))
+  (set-footnote-numbers! note (cons number (footnote-numbers note)))
+  {sup {{a {id #(footnote-back-ref-id id refcount)}}
+        #(number->string number)}})
+(define (format-footnote id footnote)
+  {{li {id footnote-#id}}
+   {{a #(link-href "footnote" id)}
+    #(string-join (map number->string (sort (footnote-numbers footnote) <))
+                  ", ")}:
+   #@(footnote-content footnote)
+   #@(->> (iter:iota (footnote-refcount footnote) 1)
+          (iter:map (lambda (i)
+                      {{a {href #"#"#(footnote-back-ref-id id i)}}
+                       ↑}))
+          (iter:collect! (sink:list)))})
+(define (insert-footnotes footnotes)
+  (define notes (make-vector (footnotes-count footnotes) #f))
+  (hash-table-walk
+   (footnotes-table footnotes)
+   (lambda (id note)
+     (when (null? (footnote-numbers note))
+       (error "Footnote note referenced." id))
+     (when (null? (footnote-content note))
+       (error "Footnote note defined." id))
+     (vector-set! notes (- (apply min (footnote-numbers note)) 1)
+                  (format-footnote id note))))
+  (and (not (= (vector-length notes) 0))
+       {footer {hr} {{ul {class footnotes}} #@(vector->list notes)}}))
 
 (define (copyright published updated)
   {just
@@ -140,12 +224,13 @@
        (page-description page)
        {{meta {property og:description}
               {content
-               #@(if (length> (page-description page) 30)
-                     (append (->> (iter:from-list (page-description page))
-                                  (iter:take 30)
-                                  (iter:collect! (sink:list)))
-                             {#'join …})
-                     (page-description page))}}})
+               {footnote-ignore
+                #@(if (length> (page-description page) 30)
+                      (append (->> (iter:from-list (page-description page))
+                                   (iter:take 30)
+                                   (iter:collect! (sink:list)))
+                              {#'join …})
+                      (page-description page))}}}})
      #(if article?
           {just {{meta {property og:type} {content article:article}}}
                 #(and
@@ -172,15 +257,15 @@
          (if (page-published page)
              {{div {class date}} #(date-format (page-published page))}
              {{div {class date}} DRAFT}))}
-      #@(cons*
-         {h1 {#(if (or (string= (page-type page) "reply")
-                       (string= (page-type page) "repost"))
-                   {a {href #@(or (page-parent page)
-                                  (error "Post missing parent: " (page-title page)))}}
-                   "just")
-              #@(page-title page)}}
-         (and (page-description page) {p #@(page-description page)})
-         (page-body page))
+      {h1 {#(if (or (string= (page-type page) "reply")
+                    (string= (page-type page) "repost"))
+                {a {href #@(or (page-parent page)
+                               (error "Post missing parent: " (page-title page)))}}
+                "just")
+           #@(page-title page)}}
+      #(and (page-description page) {p #@(page-description page)})
+      #@(page-body page)
+      {insert-footnotes}
       #(and (page-published page)
             {{footer {id copy-notice}}
              #(copyright (page-published page) (page-updated page))})}}}})
@@ -191,7 +276,7 @@
 
 (define (write-form-to-file name language sexp)
   (call-with-output-file (output-file name)
-    (lambda (port) (write-form sexp language port))))
+    (lambda (port) (write-form sexp (footnote-augment language) port))))
 
 (define (scheme-file-functor f)
   (lambda (file)
@@ -336,6 +421,27 @@
    (dirfiles (string-append "pages/" ext))))
 
 (define public-posts (make-fluid))
+
+(define (footnote-augment language)
+  (define parent-writer (language-write-tag language))
+  (define footnotes (make-footnotes))
+  (language-augment
+   language
+   #:write-tag
+   (lambda (name attributes body language* port)
+     (match name
+       ("footnote"
+        (write-form (write-form (apply footnote footnotes body) language* port)))
+       ("footnote-ref"
+        (write-form (apply footnote-ref footnotes body) language* port))
+       ("footnote-ignore"
+        (let ((old footnotes))
+          (set! footnotes (copy-footnotes footnotes))
+          (write-forms body language* port)
+          (set! footnotes old)))
+       ("insert-footnotes"
+        (write-form (apply insert-footnotes footnotes body) language* port))
+       (_ (parent-writer name attributes body language* port))))))
 
 (define (build arguments)
   (fluid-set! input-directory (cadr arguments))

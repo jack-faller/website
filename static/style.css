@@ -99,6 +99,9 @@ h1 {
 	right: var(--content-margin);
 	position: absolute;
 }
+.footnotes {
+	list-style: none;
+}
 #copy-notice {
 	text-align: right;
 	font-size: small;

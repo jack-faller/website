@@ -26,7 +26,7 @@
   {h2
    {{a {href ./atom.xml} {class headinglink}}
     Activity
-    {{img {src /feed-icon.svg}
+    {{img {src /images/feed-icon.svg}
           {style height: 0.75em\; position: relative\; top: 0.05em\;}
           {alt logo used to represent RSS and ATOM feeds}}}}}
   {ul

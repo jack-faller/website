@@ -41,6 +41,7 @@
 	--content-margin: 1.5rem;
 	--page-bg: rgba(255,255,255,0.9);
 	--code-bg: rgb(215,215,215);
+	--text-indent: 1.5em;
 }
 html {
 	/* Account for dynamic viewports on mobile. */
@@ -71,6 +72,23 @@ main {
 
 h1 {
 	text-align: center;
+}
+
+.titled-list {
+	margin: 0;
+}
+.titled-list dt::after {
+	content: ": ";
+}
+.titled-list dt {
+	font-weight: bold;
+	float: left;
+	clear: left;
+	margin-right: 0.5em;
+	margin-left: var(--text-indent);
+}
+.titled-list dd {
+	margin-inline-start: 0;
 }
 
 .headinglink {
@@ -109,7 +127,7 @@ h1 {
 
 p {
 	margin: 0;
-	text-indent: 1.5em;
+	text-indent: var(--text-indent);
 	text-align: justify;
 	text-wrap: pretty;
 }

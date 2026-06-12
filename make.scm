@@ -177,9 +177,10 @@
        (string= extension (path-extension path))))
 
 (define-record-type <page>
-  (make-page path parent uuid type type-pretty title published updated description body)
+  (make-page path source parent uuid type type-pretty title published updated description body)
   page?
   (path        page-path        page-path!)
+  (source      page-source      page-source!)
   (parent      page-parent      page-parent!)
   (uuid        page-uuid        page-uuid!)
   (type        page-type        page-type!)
@@ -207,9 +208,9 @@
 ;; TODO: figure out error if I declare this above <page>
 (define doclisp-template
   (case-lambda
-    ((doclisp) (doclisp-template #f doclisp))
-    ((path doclisp)
-     (template (doclisp->page path doclisp)))))
+    ((doclisp) (doclisp-template #f #f doclisp))
+    ((path source doclisp)
+     (template (doclisp->page path source doclisp)))))
 (define (template page)
   (define article? (is-article? page))
   {just
@@ -319,9 +320,12 @@
 (define (page-published->? a b)
   (define a-pub (page-published a))
   (define b-pub (page-published b))
-  (or
-   (not a-pub)
-   (and b-pub (time>? (date->time-tai a-pub) (date->time-tai b-pub)))))
+  (cond
+   ((and (not a-pub) (not b-pub))
+    (> (stat:mtime (stat (page-source a))) (stat:mtime (stat (page-source b)))))
+   ((not a-pub) #t)
+   ((not b-pub) #f)
+   (else (time>? (date->time-tai a-pub) (date->time-tai b-pub)))))
 (define (page-published-y/m/d page)
   (if (page-published page)
       (date->string (page-published page) "~y/~m/~d")
@@ -344,10 +348,11 @@
 (define (date-ref page-alist date-name)
   (define date (assoc-ref page-alist date-name))
   (and date (read-date-string (car date))))
-(define (doclisp->page path form)
+(define (doclisp->page path source form)
   (define page (cdr form))
   (make-page
    path
+   source
    (assoc-ref page "parent")
    (let ((a (assoc-ref page "uuid"))) (and a (car a)))
    (caar form)
@@ -357,14 +362,14 @@
    (date-ref page "updated")
    (assoc-ref page "description")
    (or (assoc-ref page "body") '())))
-(define (doclisp->post name form)
-  (doclisp->page (make-path (caar form) name "html") form))
+(define (doclisp->post name source form)
+  (doclisp->page (make-path (caar form) name "html") source form))
 (define (build-posts directory)
   (define include-drafts? (equal? (getenv "BUILD_TYPE") "local"))
   (->>
    (dirfiles directory)
    (iter:map (scheme-file-functor
-              (lambda (name file) (doclisp->post name (load file)))))
+              (lambda (name file) (doclisp->post name file (load file)))))
    (iter:filter identity)
    (iter:map
     (lambda (page)
@@ -483,7 +488,7 @@
   (build-pages "html" "" html
                (lambda (file)
                  (doclisp-template (make-path "" (basename file ".scm") "html")
-                                   (load file))))
+                                   file (load file))))
   (build-pages "xsl" "" xslt
                 (lambda (file)
                   (cons "just" (assoc-ref (cdr (load file)) "body"))))

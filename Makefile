@@ -4,7 +4,7 @@ export CC=gcc
 
 all: build/local/output
 send: build/remote/output build/nginx-token
-	rsync --recursive --compress "$<" "$$(cat server-url.txt):/website/" --delete-after
+	rsync --recursive --compress "$</" "$$(cat server-url.txt):/website/" --delete-after
 clean:
 	mv build/nginx-token .
 	rm -rf build || true

@@ -2,26 +2,28 @@
 
 export CC=gcc
 
-all: servdir
-send: servdir nginx-token
-	rsync --recursive --compress servdir/ "$$(cat server-url.txt):/website/" --delete-after
+all: build/local/output
+send: build/remote/output nginx-token
+	rsync --recursive --compress "$<" "$$(cat server-url.txt):/website/" --delete-after
 clean:
 	rm -rf servdir build nginx-token generated || true
-image: generated/images/tiling_pattern.png
-servdir: generated generated/blogroll.xml image $(shell find static) server-url.txt
-	rm -rf servdir || true
-	cp -rT static servdir
-	cp -rT generated/ servdir
-generated: $(shell find pages posts) doclisp.scm make.scm maths.scm highlight.sh tree-sitter-config.json
-	rm -rf "$@"
+build/generic: build/generic/images/tiling_pattern.png
+build/%/output: build/%/generated build/generic $(shell find static) server-url.txt
+	rm -rf "$@" || true
+	cp -rT static "$@"
+	cp -rT build/generic "$@"
+	cp -rT "build/$*/generated" "$@"
+build/%/generated: blogroll.opml $(shell find pages posts) doclisp.scm make.scm maths.scm highlight.sh tree-sitter-config.json
+	rm -rf "$@" || true
 	sed "s#{{PROJECT_ROOT}}#$$PWD#" tree-sitter-config.json > build/tree-sitter-config.json
-	./guile.sh -e "(@ (make) build)" make.scm . "$@"
-generated/blogroll.xml: blogroll.opml generated
+	BUILD_TYPE="$*" ./guile.sh -e "(@ (make) build)" make.scm . "$@"
+	mv "build/$*/generated/modify-blogroll.xsl" "build/$*" || true
+	sed 's#<opml#<?xml version="1.0" encoding="UTF-8"?><opml xmlns="http://opml.org/spec2"#' "$<" > "build/$*/blogroll.opml"
+	xsltproc -o "$@/blogroll.xml" "build/$*/modify-blogroll.xsl" "build/$*/blogroll.opml"
+build/%/generated/blogroll.xml: blogroll.opml build/%/generated
 	mkdir -p "$$(dirname "$@")"
-	mv generated/modify-blogroll.xsl build/ || true
-	sed 's#<opml#<?xml version="1.0" encoding="UTF-8"?><opml xmlns="http://opml.org/spec2"#' "$<" > build/blogroll.opml
-	xsltproc -o "$@" build/modify-blogroll.xsl build/blogroll.opml
-nginx-token: nginx.conf server-url.txt
+build/nginx-token: nginx.conf server-url.txt
+	mkdir -p "$$(dirname "$@")"
 	rsync nginx.conf "$$(cat server-url.txt):/etc/nginx/nginx.conf"
 	ssh $$(cat server-url.txt) nginx -s reload
 	echo "up-to-date" > nginx-token
@@ -40,6 +42,6 @@ build/main: tiling/main.cpp $(glad_dir)/src/gl.c
 	g++ -ggdb -Wall $(glad_flags) $(flags) $^ -o "$@"
 build/output.ppm: build/main tiling/*.vert tiling/*.frag
 	"$<" --output "$@"
-generated/images/tiling_pattern.png: build/output.ppm
+build/generic/images/tiling_pattern.png: build/output.ppm
 	mkdir -p "$$(dirname "$@")"
 	convert "$<" "$@"

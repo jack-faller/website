@@ -135,14 +135,16 @@
        {footer {hr} {{ul {class footnotes}} #@(vector->list notes)}}))
 
 (define (copyright published updated)
-  {just
-   ©
-   {join
-    #(number->string (date-year published))
-    #(if (and updated (not (= (date-year published) (date-year updated))))
-         {join – #(number->string (date-year updated))}
-         "")}
-   Jack Faller})
+  (and
+   published
+   {just
+    ©
+    {join
+     #(number->string (date-year published))
+     #(if (and updated (not (= (date-year published) (date-year updated))))
+          {join – #(number->string (date-year updated))}
+          "")}
+    Jack Faller}))
 
 (define (code-block file-name)
   (define file (input-file (string-append "posts/" file-name)))
@@ -315,8 +317,15 @@
 (define note #f)
 (define note-ref #f)
 (define (page-published->? a b)
-  (time>? (date->time-tai (page-published a)) (date->time-tai (page-published b))))
-(define (page-published-y/m/d page) (date->string (page-published page) "~y/~m/~d"))
+  (define a-pub (page-published a))
+  (define b-pub (page-published b))
+  (or
+   (not a-pub)
+   (and b-pub (time>? (date->time-tai a-pub) (date->time-tai b-pub)))))
+(define (page-published-y/m/d page)
+  (if (page-published page)
+      (date->string (page-published page) "~y/~m/~d")
+      "DRAFT"))
 (define (page->li include-type?)
   (lambda (page)
     {li {{a {href #(page-url page)}}
@@ -351,6 +360,7 @@
 (define (doclisp->post name form)
   (doclisp->page (make-path (caar form) name "html") form))
 (define (build-posts directory)
+  (define include-drafts? (equal? (getenv "BUILD_TYPE") "local"))
   (->>
    (dirfiles directory)
    (iter:map (scheme-file-functor
@@ -362,17 +372,19 @@
         (write-form-to-file
          (page-url page #:omit-leading-/? #t) html (template page)))
       page))
-   (iter:filter page-published)
+   ((if include-drafts? (lambda (a b) b) iter:filter) page-published)
    (iter:collect! (sink:list))
    ((cut sort <> page-published->?))))
 
-(define (atom-feed-for posts this-page prev-archive next-archive)
-  (define (format-date date) (regexp-substitute/global
-                              #f ".[^Z]$" (date->string date "~4")
-                              'pre ":" 0))
+(define (atom-document-for posts this-page is-archive? prev-archive next-archive)
+  (define (format-date date)
+    (regexp-substitute/global
+     #f ".[^Z]$" (date->string (or date (current-date)) "~4")
+     'pre ":" 0))
   (define (-est get-date compare)
     (->> (iter:from-list posts)
          (iter:map get-date)
+         (iter:filter identity)
          (iter:map date->time-tai)
          (iter:collect! (sink:reduce (lambda (a b) (if (compare a b) a b)) #f))
          (time-tai->date)))
@@ -390,6 +402,7 @@
    {? xml-stylesheet type="text/xsl" href="./atom.xsl"}
    {{feed {xml:lang en-GB}
           {xmlns http://www.w3.org/2005/Atom}
+          {xmlns:fh http://purl.org/syndication/history/1.0}
           {xmlns:j http://jackfaller.xyz}}
     {{title {type text}} Jack Faller}
     {{subtitle {type text}} All the stuff from me.}
@@ -403,14 +416,14 @@
     ;; {logo }
     {{link {rel self} {href https://jackfaller.xyz/#this-page}}}
     {{link {rel alternate} {type text/html} {href https://jackfaller.xyz}}}
-    #(if next-archive
-         {just
-          {{link {rel next-archive} {href https://jackfaller.xyz/#next-archive}}}
-          {{link {rel current} {href https://jackfaller.xyz/atom.xml}}}}
-         #f)
-    #(if prev-archive
-         {{link {rel prev-archive} {href https://jackfaller.xyz/#prev-archive}}}
-         #f)
+    #(and is-archive?
+          {just
+           {fh:archive}
+           {{link {rel current} {href https://jackfaller.xyz/atom.xml}}}})
+    #(and next-archive
+          {{link {rel next-archive} {href https://jackfaller.xyz/#next-archive}}})
+    #(and prev-archive
+         {{link {rel prev-archive} {href https://jackfaller.xyz/#prev-archive}}})
     #@(map
        (lambda (post)
          {entry
@@ -475,6 +488,9 @@
                 (lambda (file)
                   (cons "just" (assoc-ref (cdr (load file)) "body"))))
   ;; TODO: archives.
+  ;; Design: archive by published date, every 32 items a new page is created.
+  ;; The current document contains the 32 most recently updated documents, and
+  ;; anything not in the archive.
   (write-form-to-file
    "atom.xml" xml
-   (atom-feed-for (reverse (fluid-ref public-posts)) "atom.xml" #f #f)))
+   (atom-document-for (reverse (fluid-ref public-posts)) "atom.xml" #f #f #f)))

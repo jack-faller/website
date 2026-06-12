@@ -1,4 +1,4 @@
-.PHONY: all clean send image
+.PHONY: all clean send image serve
 
 export CC=gcc
 
@@ -7,6 +7,8 @@ send: build/remote/output nginx-token
 	rsync --recursive --compress "$<" "$$(cat server-url.txt):/website/" --delete-after
 clean:
 	rm -rf servdir build nginx-token generated || true
+serve: build/local/output
+	guix shell python -- python3 -m http.server -d build/local/output
 build/generic: build/generic/images/tiling_pattern.png
 build/%/output: build/%/generated build/generic $(shell find static) server-url.txt
 	rm -rf "$@" || true

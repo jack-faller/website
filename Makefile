@@ -3,10 +3,13 @@
 export CC=gcc
 
 all: build/local/output
-send: build/remote/output nginx-token
+send: build/remote/output build/nginx-token
 	rsync --recursive --compress "$<" "$$(cat server-url.txt):/website/" --delete-after
 clean:
-	rm -rf servdir build nginx-token generated || true
+	mv build/nginx-token .
+	rm -rf build || true
+	mkdir build
+	mv nginx-token build/nginx-token
 serve: build/local/output
 	guix shell python -- python3 -m http.server -d build/local/output
 build/generic: build/generic/images/tiling_pattern.png

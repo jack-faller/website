@@ -139,6 +139,13 @@ a:visited {
 	color: #480048;
 }
 
+blockquote::before {
+	content: "“";
+}
+blockquote::after {
+	content: "”";
+}
+
 pre.block {
 	white-space: pre-wrap;
 	word-break: break-all;

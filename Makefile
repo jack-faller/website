@@ -1,8 +1,9 @@
-.PHONY: all clean send image serve
+.PHONY: all clean send image serve log build/log.html
 
 export CC=gcc
 
 all: build/local/output
+log: build/log.html
 send: build/remote/output build/nginx-token
 	rsync --recursive --compress "$</" "$$(cat server-url.txt):/website/" --delete-after
 clean:
@@ -12,6 +13,9 @@ clean:
 	mv nginx-token build/nginx-token
 serve: build/local/output
 	guix shell python -- python3 -m http.server -d build/local/output
+build/log.html:
+	./getlog.sh | goaccess - -o "$@" --log-format=COMBINED
+	xdg-open "$@"
 build/generic: build/generic/images/tiling_pattern.png
 build/%/output: build/%/generated build/generic $(shell find static) server-url.txt
 	rm -rf "$@" || true

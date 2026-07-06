@@ -4,6 +4,7 @@
  {title In Response to Pie-onomics}
  {uuid f07daef3-6876-4287-8a08-3777a726e8e7}
  {published #"2026/07/06 05:04 +0100"}
+ {updated #"2026/07/06 05:24 +0100"}
  {description
   It is often said that the economy isn't a {q fixed pie}, but a growing pie or a machine for making pies or something like that.
   My general rule is that you should dismiss people who start talking about pies when trying to discuss the economy.
@@ -34,4 +35,15 @@
    If others were also free to withdraw labour, then this would be impossible.
    You would each have equal negotiating power and the logical conclusion would be each person taking only what they give.
    But in a system where the rich can withdraw labour while the poor cannot, the rich will claim as close as they can to the full bonus of specialisation and leave the poor with none of that generated wealth.
-   It's no surprise that the people who defend the rich being paid as they are also attack tools such as unions and welfare that allow the poor to withdraw labour and might result in fairer pay.}}}
+   It's no surprise that the people who defend the rich being paid as they are also attack tools such as unions and welfare that allow the poor to withdraw labour and might result in fairer pay.}
+  (link-heading 2 "other-sources-of-value" "Other Sources of Value")
+  {p
+   One common rubbutal to this way of looking at things is to bring up other sources of value, and they do indeed expose the limits of this model.
+   How much value does a painter add with his art?
+   Hard to say.
+   Every painting is unique, and the sale price is determined by many factors.
+   Luckily these things make up a small portion of the economy.
+   Most of the stuff we actually care about is some form of commodity good.
+   This means that they have alterntives which can be substituted and competition has driven the price down close to the cost of manufacture.
+   This entire thing might be easier to understand if phrased in terms of cost rather than value.
+   For goods on the pile whose price is their cost, the analogy works well, and happily that is most things.}}}

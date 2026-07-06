@@ -8,7 +8,7 @@
   It is often said that the economy isn't a {q fixed pie}, but a growing pie or a machine for making pies or something like that.
   My general rule is that you should dismiss people who start talking about pies when trying to discuss the economy.
   They're probably just hungry.
-  But the perspective the hold is perhaps as common as it is ill-defined and I think it merits some response.}
+  But the perspective they hold is perhaps as common as it is ill-defined and I think it merits some response.}
  {body
   {p
    First we should note that the economy is a fixed pie.

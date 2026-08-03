@@ -6,4 +6,4 @@
 	url = git@github.com:6cdh/tree-sitter-scheme.git
 [submodule "libraries/tree-sitter-c"]
 	path = libraries/tree-sitter-c
-	url = git@github.com:tree-sitter/tree-sitter-c.git
+	url = git@github.com:jack-faller/tree-sitter-c.git

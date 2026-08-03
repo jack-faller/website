@@ -286,7 +286,6 @@
     const scroll_range_px = 300;
     document.body.style.setProperty('--badge-fade-progress', Math.min(window.pageYOffset, scroll_range_px) / scroll_range_px);
 }, false);"}
-     {noscript {style #"#not-by-ai-badge { animation-play-state: running; }"}}
      {{a {id not-by-ai-badge} {href https://notbyai.fyi/}}
       {{img {src /images/Written-By-a-Human-Not-By-AI-Badge-black.svg}
             {alt A small badge with a smily face icon that reads {q written by a human, not AI.}}}}}}}})

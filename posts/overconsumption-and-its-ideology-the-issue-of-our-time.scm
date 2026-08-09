@@ -3,6 +3,7 @@
 {{post {version #1}}
  {title Overconsumption and Its Ideology: The Issue of Our Time}
  {published #"2026/05/28 19:07 +0100"}
+ {updated #"2026/08/09 11:55 +0100"}
  {uuid 54f4e7cf-9a53-4a2a-b168-a1f770441f18}
  {description
   When is a good consumed?
@@ -94,7 +95,7 @@
    The popular conception of getting a {q hit of dopamine} whenever you do something enjoyable irks me to no end.
    It has only the vaguest relation to any real science.
    What's more, a good understanding of the various neurotransmitters can be greatly helpful in better understanding the emotions caused by them.
-   There are many neurotransmitters responsible for the various ways you experience pleasure and joy, and what's more, dopamine may not even be among them.
+   There are many neurotransmitters responsible for the various ways you experience pleasure and joy, and dopamine may not even be among them.
    This scientific oversimplification robs people not only of objective truth, but of a deeper self-understanding that may come from it.}
   {p
    With that short rant out of the way, here's how dopamine relates to this cyclic desire people feel.}

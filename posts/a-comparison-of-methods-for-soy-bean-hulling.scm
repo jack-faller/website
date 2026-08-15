@@ -3,6 +3,7 @@
 {{post {version #1}}
  {title A Comparison of Methods for Soy Bean Hulling}
  {uuid e0502fce-f0bb-4a5b-a810-7aa844ed752d}
+ {published #"2026/08/15 02:28 +0100"}
  {description
   I have been making my own soy milk for some time.
   Hulling the beans improves the colour and flavour of the milk, but there are many methods.

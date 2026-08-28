@@ -413,12 +413,16 @@
          (display "<?" port)
          (write-forms body language port)
          (display "?>" port))
+        ((equal? name "!DOCTYPE")
+         (display "<!DOCTYPE " port)
+         (for-each (lambda (s) (display s port)) attributes)
+         (display ">\n" port))
         (else
          (tag name attributes body language port)))))))
 
 (define self-closing-html-tags
   '("area" "base" "br" "col" "embed" "hr" "img" "input" "link" "meta" "param"
-    "source" "track" "wbr" "!DOCTYPE"))
+    "source" "track" "wbr"))
 (define body-required-html-tags
   '("script" "iframe"))
 (define html

@@ -267,7 +267,9 @@
        #(and
          article?
          (if (page-published page)
-             {{div {class date}} #(date-format (page-published page))}
+             {{time {pubdate pubdate} {class date}
+                    {datetime #(date->string (page-published page) "~4")}}
+              #(date-format (page-published page))}
              {{div {class date}} DRAFT}))}
       {h1 {#(if (or (string= (page-type page) "reply")
                     (string= (page-type page) "repost"))

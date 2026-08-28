@@ -267,7 +267,7 @@
        #(and
          article?
          (if (page-published page)
-             {{time {pubdate pubdate} {class date}
+             {{time pubdate {class date}
                     {datetime #(date->string (page-published page) "~4")}}
               #(date-format (page-published page))}
              {{div {class date}} DRAFT}))}

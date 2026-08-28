@@ -314,7 +314,9 @@
      (lambda (i)
        (put " " port)
        (if (string? i)
-           (put i port)
+           (begin
+             (put i port)
+             (put "=\"\"" port))
            (begin
              (put (car i) port)
              (put "=\"" port)

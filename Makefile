@@ -12,7 +12,7 @@ clean:
 	mkdir build
 	mv nginx-token build/nginx-token
 serve: build/local/output
-	guix shell python -- python3 -m http.server -d build/local/output
+	guix shell python -- python3 server.py build/local/output
 build/log.html:
 	./getlog.sh build/logs-temp
 	@echo "Get the latest geo-IP database from http://db-ip.com/db/download/ip-to-city-lite and put it in ./build/geo-ip.mmdb"

@@ -206,17 +206,21 @@
        (string-append "." (path-extension (page-path page))))))
 
 ;; TODO: figure out error if I declare this above <page>
-(define doclisp-template
-  (case-lambda
-    ((doclisp) (doclisp-template #f #f doclisp))
-    ((path source doclisp)
-     (template (doclisp->page path source doclisp)))))
-(define (template page)
+(define* (doclisp-template doclisp #:optional #:key path source (include-pi? #t))
+  (template (doclisp->page path source doclisp) #:include-pi? include-pi?))
+(define* (template page #:optional #:key (include-pi? #t))
   (define article? (is-article? page))
   {just
-   {{!DOCTYPE html}}
-   {{html {lang en-GB}
-          {prefix og: https://ogp.me/ns\# article: https://ogp.me/ns/article\#}}
+   #(and
+     include-pi?
+     {just
+      {? xml version="1.0" encoding="UTF-8"}
+      {!DOCTYPE html}})
+   {{html
+     {xmlns http://www.w3.org/1999/xhtml}
+     {xml:lang en-GB}
+     {xmlns:og https://ogp.me/ns\#}
+     {xmlns:article https://ogp.me/ns/article\#}}
     {head
      {title Jack Faller}
      {{meta {charset utf-8}}}
@@ -262,8 +266,8 @@
      {main
       {header
        #(and (not (and (page-path page)
-                       (path-is? (page-path page) "" "index" "html")))
-             {{a {href /index.html} {title home} {class backarrow}} ←})
+                       (path-is? (page-path page) "" "index" "xhtml")))
+             {{a {href /index.xhtml} {title home} {class backarrow}} ←})
        #(and
          article?
          (if (page-published page)
@@ -364,7 +368,7 @@
    (assoc-ref page "description")
    (or (assoc-ref page "body") '())))
 (define (doclisp->post name source form)
-  (doclisp->page (make-path (caar form) name "html") source form))
+  (doclisp->page (make-path (caar form) name "xhtml") source form))
 (define (build-posts directory)
   (define include-drafts? (equal? (getenv "BUILD_TYPE") "local"))
   (->>
@@ -376,7 +380,7 @@
     (lambda (page)
       (unless (blank-repost? page)
         (write-form-to-file
-         (page-url page #:omit-leading-/? #t) html (template page)))
+         (page-url page #:omit-leading-/? #t) xhtml (template page)))
       page))
    ((if include-drafts? (lambda (a b) b) iter:filter) page-published)
    (iter:collect! (sink:list))
@@ -421,7 +425,9 @@
     ;; TODO
     ;; {logo }
     {{link {rel self} {href https://jackfaller.xyz/#this-page}}}
-    {{link {rel alternate} {type text/html} {href https://jackfaller.xyz}}}
+    {{link {rel alternate}
+           {type application/xhtml+xml}
+           {href https://jackfaller.xyz}}}
     #(and is-archive?
           {just
            {fh:archive}
@@ -434,7 +440,7 @@
        (lambda (post)
          {entry
           {{title {type text}} #@(page-title post)}
-          {{content {type text/html} {src #(page-url post #:full? #t)}}}
+          {{content {type application/xhtml+xml} {src #(page-url post #:full? #t)}}}
           {published #(format-date (page-published post))}
           #(and (page-updated post) {updated #(format-date (page-updated post))})
           {{category {term #(page-type post)} {label #(page-type-pretty post)}}}
@@ -486,10 +492,12 @@
 
   (fluid-set! public-posts (build-posts "posts"))
 
-  (build-pages "html" "" html
+  (build-pages "xhtml" "" xhtml
                (lambda (file)
-                 (doclisp-template (make-path "" (basename file ".scm") "html")
-                                   file (load file))))
+                 (doclisp-template
+                  (load file)
+                  #:path (make-path "" (basename file ".scm") "xhtml")
+                  #:source file)))
   (build-pages "xsl" "" xslt
                 (lambda (file)
                   (cons "just" (assoc-ref (cdr (load file)) "body"))))

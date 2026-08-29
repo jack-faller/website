@@ -18,7 +18,7 @@
             language-write-tag
             language-escaper language-unescaper language-newline
             language-augment language-write-escaped language-write-unescaped
-            xml html escaped xslt))
+            xml html escaped xslt xhtml))
 
 (define-syntax set-reader!
   (syntax-rules ()
@@ -415,8 +415,8 @@
          (display "?>" port))
         ((equal? name "!DOCTYPE")
          (display "<!DOCTYPE " port)
-         (for-each (lambda (s) (display s port)) attributes)
-         (display ">\n" port))
+         (write-forms body language port)
+         (display ">" port))
         (else
          (tag name attributes body language port)))))))
 
@@ -439,6 +439,7 @@
      #:write-tag
      (lambda (name attributes body language port)
        ((hash-table-ref/default tags name parent) name attributes body language port)))))
+(define xhtml xml)
 (define xslt
   (let ((parent (language-write-tag xml)))
     (language-augment

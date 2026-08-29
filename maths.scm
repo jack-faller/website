@@ -147,8 +147,11 @@
   (make-expression mathml operator #t #t))
 
 (define (math->mathml expr) (expression-mathml (math->expression expr)))
-(define (math expr) {math #(math->mathml expr)})
-(define (math-block expr) {{math {display block}} #(math->mathml expr)})
+(define (math expr)
+  {{math {xmlns http://www.w3.org/1998/Math/MathML}} #(math->mathml expr)})
+(define (math-block expr)
+  {{math {display block} {xmlns http://www.w3.org/1998/Math/MathML}}
+   #(math->mathml expr)})
 ;; Values returned are expr, operator, left-fence, right-fence.
 (define (math-apply f . args)
   (apply apply (hashq-ref math-definitions f) f args))
@@ -257,8 +260,8 @@
         (iter:collect! (sink:list)))))
 
 (define math-definitions
-  (let ((it {mo {raw &it\;}})
-        (af {mo {raw &af\;}}))
+  (let ((it {mo {raw &\#8290\;}}) ;; Invisible times.
+        (af {mo {raw &\#8289\;}})) ;; Apply function.
     (alist->hashq-table
      `((inf . ,(atom-expression {mi ∞}))
        (comment . ,(lambda (name e comment)

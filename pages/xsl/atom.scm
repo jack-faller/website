@@ -31,4 +31,5 @@
             –
             {{xsl:value-of {select atom:category/@label}}}
             –
-            {{xsl:value-of {select atom:title}}}}}}}}})}}}}
+            {{xsl:value-of {select atom:title}}}}}}}}}
+      #:include-pi? #f)}}}}

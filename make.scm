@@ -223,6 +223,7 @@
      {xmlns:article https://ogp.me/ns/article\#}}
     {head
      {title Jack Faller}
+     {{meta {name author} {content Jack Faller}}}
      {{meta {charset utf-8}}}
      {{meta {name viewport} {content width=device-width, initial-scale=1.0}}}
      #(and (page-path page)

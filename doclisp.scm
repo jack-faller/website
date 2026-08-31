@@ -471,7 +471,7 @@
       (when wants-space?
         (language-write-escaped language " " port))
       (write-form (car forms) language port)
-      (loop (cdr forms) (string? (car forms)))))))
+      (loop (cdr forms) #t)))))
 (define (write-form form language port)
   (cond
    ((or (not form) (null? form)))

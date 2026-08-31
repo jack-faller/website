@@ -222,7 +222,7 @@
      {xmlns:og https://ogp.me/ns\#}
      {xmlns:article https://ogp.me/ns/article\#}}
     {head
-     {title Jack Faller}
+     {title #(page-title page)}
      {{meta {name author} {content Jack Faller}}}
      {{meta {charset utf-8}}}
      {{meta {name viewport} {content width=device-width, initial-scale=1.0}}}

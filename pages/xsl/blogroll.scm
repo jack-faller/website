@@ -28,4 +28,5 @@
                {{xsl:value-of {select opml:outline/@htmlUrl}}}}
               {xsl:otherwise
                {{xsl:value-of {select opml:outline/@xmlUrl}}}}}}
-            {{xsl:value-of {select opml:outline/@text}}}}}}}}})}}}}
+            {{xsl:value-of {select opml:outline/@text}}}}}}}}}
+      #:include-pi? #f)}}}}

@@ -17,6 +17,7 @@
    {{xsl:template {match atom:feed}}
     {html
      {head
+      {{base {target _parent}}}
       {{link {rel stylesheet} {type text/css} {href /font.css}}}}
      {{body {style margin: 0\;}}
       {ul

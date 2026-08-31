@@ -164,6 +164,7 @@ math {
 .feed-frame {
 	width: 100%;
 	height: 15.6em;
+	border: 0;
 }
 
 #not-by-ai-badge {

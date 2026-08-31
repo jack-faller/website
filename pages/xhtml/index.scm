@@ -27,12 +27,12 @@
     {{a {rel me} {href https://github.com/jack-faller}} On Github.}}
    {li
     {{a {rel me} {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
-  {{h2 {class headinglink}}
-   Activity
-   ({{a {href ./atom.xml}}
-     see more}
-    {{a {href ./atom.xml}}
-     {{img {src /images/feed-icon.svg}
+  #(link-heading 2 "activity" "Activity")
+  {p
+   See all my activity on my
+   {{a {href ./atom.xml}}
+    Atom feed
+    {{img {src /images/feed-icon.svg}
            {style height: 0.75em\; position: relative\; top: 0.05em\;}
-           {alt Logo used to represent RSS and ATOM feeds.}}}})}
+           {alt Logo used to represent RSS and ATOM feeds.}}}}.}
   {{iframe {class feed-frame} {src /feed-recent.xml}}}}}

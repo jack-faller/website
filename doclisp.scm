@@ -43,24 +43,18 @@
     found-space))
 
 (define (read-until f port)
-  (define (peek-escape port)
-    (define out (peek-char port))
-    (if (eq? out #\\)
-        (begin
-          (read-char port)
-          (list (peek-char port)))
-        out))
-  (string-unfold
-   (lambda (c)
-     (if (pair? c)
-         (eof-object? (car c))
-         (or (eof-object? c) (f c))))
-   (lambda (c)
-     (if (pair? c) (car c) c))
-   (lambda (ign)
-     (read-char port)
-     (peek-escape port))
-   (peek-escape port)))
+  (define (reader)
+    (define c (peek-char port))
+    (cond
+     ((or (eof-object? c) (f c)))
+     ((char=? c #\\)
+      (read-char port)
+      (write-char (read-char port))
+      (reader))
+     (else
+      (write-char (read-char port))
+      (reader))))
+  (with-output-to-string reader))
 
 (define (delimited-read end port table include-syntax? join?)
   (iter:collect!
@@ -162,12 +156,13 @@
   (alist->hash-table
    `((atom
       . ,(lambda (port table include-syntax?)
-           (if (eq? (peek-char port) #\")
-               ((if include-syntax? read-syntax read) port)
-               (let ((pos (port-position port)))
-                 (datum->syntax-if
-                  (call-with-input-string (read-atom port table include-syntax?) read)
-                  pos include-syntax?)))))
+           (let ((pos (port-position port)))
+             (datum->syntax-if
+              (call-with-input-string (read-atom port table include-syntax?) read)
+              pos include-syntax?))))
+     (#\" . ,(lambda (port table include-syntax?)
+               (unget-char port #\")
+               ((if include-syntax? read-syntax read) port)))
      ,(list-syntax-pair #\( #\))
      ,(list-syntax-pair #\[ #\])
      ,(quote-syntax-pair #\' 'quote)

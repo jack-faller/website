@@ -513,14 +513,11 @@
      (define data (cdr (load file)))
      (define dummy-source (assoc-ref data "dummy-source"))
      (when dummy-source
-       (display dummy-source)
-       (newline)
        (write-form-to-file
         (car dummy-source) xml
         {just
          {? xml version="1.0" encoding="UTF-8"}
-         ;; BUG: putting "/#out-path" causes the final quote to be eaten.
-         {? xml-stylesheet type="text/xsl" {join href="/ #out-path "}}
+         {? xml-stylesheet type="text/xsl" href="/#out-path"}
          {dummy}}))
      (cons "just" (assoc-ref data "body"))))
   ;; TODO: archives.

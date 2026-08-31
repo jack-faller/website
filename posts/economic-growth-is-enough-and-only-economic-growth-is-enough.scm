@@ -1,10 +1,11 @@
 (use-modules (doclisp) (make))
 (set-reader! doclisp-reader)
-{{repost {version #1}}
+{{reply {version #1}}
  {parent https://lantpritchett.org/wp-content/uploads/2022/05/Basics-legatum-paper_short.pdf}
  {title Economic Growth Is Enough and Only Economic Growth Is Enough}
  {uuid 75cfc148-6af1-4218-a005-4d6955193a1f}
  {published #"2026/06/12 15:04 +0100"}
+ {updated #"2026/08/31 14:34 +0100"}
  {description *if your objective is to grow things.}
  {body
   {p

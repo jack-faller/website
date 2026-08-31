@@ -467,18 +467,16 @@
       out))))
 
 (define (write-forms forms language port)
-  (unless (null? forms)
-    (write-form (car forms) language port)
-    (let loop ((forms (cdr forms)))
-      (cond
-       ((null? forms))
-       ((eq? (car forms) 'join)
-        (write-form (cadr forms) language port)
-        (loop (cddr forms)))
-       (else
-        (language-write-escaped language " " port)
-        (write-form (car forms) language port)
-        (loop (cdr forms)))))))
+  (let loop ((forms forms) (wants-space? #f))
+    (cond
+     ((null? forms))
+     ((eq? (car forms) 'join)
+      (loop (cdr forms) #f))
+     (else
+      (when wants-space?
+        (language-write-escaped language " " port))
+      (write-form (car forms) language port)
+      (loop (cdr forms) (string? (car forms)))))))
 (define (write-form form language port)
   (cond
    ((or (not form) (null? form)))

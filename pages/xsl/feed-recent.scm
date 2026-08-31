@@ -17,10 +17,9 @@
    {{xsl:template {match atom:feed}}
     {html
      {head
-      {style #"body { scroll: overflow; }"}}
+      {{link {rel stylesheet} {type text/css} {href /font.css}}}}
      {{body {style margin: 0\;}}
-      {{ul {class no-bullet}
-           {style margin: 0\;}}
+      {ul
        {{xsl:for-each {select atom:entry}}
         {{xsl:sort {select position()} {data-type number} {order descending}}}
         {li

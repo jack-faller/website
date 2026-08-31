@@ -260,6 +260,7 @@
                          {content #(date->string (page-updated page) "~4")}}})}
           {{meta {property og:type} {content website}}})
      {{meta {property og:title} {content #@(page-title page)}}}
+     {{link {rel stylesheet} {type text/css} {href /font.css}}}
      {{link {rel stylesheet} {type text/css} {href /style.css}}}
      {{link {rel blogroll} {type text/xml} {href /blogroll.xml}}}
      {{link {rel alternate} {type application/atom+xml} {href /atom.xml}}}}

@@ -1,40 +1,3 @@
-@font-face {
-	font-family: STIXTwoMath;
-	src: url('STIXTwoMath-Regular.otf') format('truetype');
-	font-weight: normal; font-style: normal;
-}
-@font-face {
-	font-family: Cochineal;
-	src: url('Cochineal-Roman.woff2') format('woff2'),
-		 url('Cochineal-Roman.woff') format('woff'),
-		 url('Cochineal-Roman.otf') format('truetype');
-	font-weight: normal; font-style: normal;
-}
-@font-face {
-	font-family: Cochineal;
-	src: url('Cochineal-Bold.woff2') format('woff2'),
-		 url('Cochineal-Bold.woff') format('woff'),
-		 url('Cochineal-Bold.otf') format('truetype');
-	font-weight: bold;
-	font-style: normal;
-}
-@font-face {
-	font-family: Cochineal;
-	src: url('Cochineal-Italic.woff2') format('woff2'),
-		 url('Cochineal-Italic.woff') format('woff'),
-		 url('Cochineal-Italic.otf') format('truetype');
-	font-weight: normal;
-	font-style: italic;
-}
-@font-face {
-	font-family: Cochineal;
-	src: url('Cochineal-Bold Italic.woff2') format('woff2'),
-		 url('Cochineal-Bold Italic.woff') format('woff'),
-		 url('Cochineal-Bold Italic.otf') format('truetype');
-	font-weight: bold;
-	font-style: italic;
-}
-
 :root {
 	/* If this is changed, update @media queries. */
 	--content-width: 39rem;
@@ -46,15 +9,20 @@
 }
 html {
 	/* Account for dynamic viewports on mobile. */
+	/* Try to fill the whole screen with the background image, even when view
+       port size changes, for instance on mobile scroll when the address bar
+       disappears. */
+	/* Doesn't seem to work.  */
+	/* Set background to black so errors are less noticeable. */
+	background: black;
 	min-height: 100vh;
-	min-height: -webkit-fill-available;
 	min-height: 100dvh;
+	min-height: -webkit-fill-available;
+	height: -webkit-fill-available;
 	background-image: url('images/tiling_pattern.png');
 	background-attachment: fixed;
 }
 body {
-	font-family: Cochineal, serif;
-	font-size: 1.1875rem;
 	margin: 0px;
 
 	display: flex;

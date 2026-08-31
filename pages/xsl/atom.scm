@@ -20,7 +20,7 @@
         Copy the link from the URL of this page into your feed reader to subscribe.
         Be sure to add it to your public {{a {href https://opml.org/blogroll.opml}} blogroll} so others can see it.}
        {body
-        {{ul {class no-bullet}}
+        {ul
          {{xsl:for-each {select atom:feed/atom:entry}}
           {{xsl:sort {select position()} {data-type number} {order descending}}}
           {li

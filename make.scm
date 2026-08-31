@@ -264,7 +264,7 @@
      {{link {rel blogroll} {type text/xml} {href /blogroll.xml}}}
      {{link {rel alternate} {type application/atom+xml} {href /atom.xml}}}}
     {body
-     {main
+     {{main {class h-entry}}
       {header
        #(and (not (and (page-path page)
                        (path-is? (page-path page) "" "index" "xhtml")))
@@ -272,19 +272,26 @@
        #(and
          article?
          (if (page-published page)
-             {{time pubdate {class date}
+             {{time pubdate {class dt-published date}
                     {datetime #(date->string (page-published page) "~4")}}
               #(date-format (page-published page))}
              {{div {class date}} DRAFT}))}
-      {h1 {#(if (or (string= (page-type page) "reply")
-                    (string= (page-type page) "repost"))
-                {a {href #@(or (page-parent page)
-                               (error "Post missing parent: " (page-title page)))}}
-                "just")
-           #@(page-title page)}}
-      #(and (page-description page) {p #@(page-description page)})
-      #@(page-body page)
-      {insert-footnotes}
+      {{h1 {class p-name}}
+       {#(if (or (string= (page-type page) "reply")
+                 (string= (page-type page) "repost"))
+             {a {href #@(or (page-parent page)
+                            (error "Post missing parent: " (page-title page)))}
+                {rel in-reply-to}
+                {class #(if (string= (page-type page) "reply")
+                            "u-in-reply-to"
+                            "u-repost-of")}}
+             "just")
+        #@(page-title page)}}
+      {{div {class e-content}}
+       #(and (page-description page)
+             {{p {class p-summary}} #@(page-description page)})
+       #@(page-body page)
+       {insert-footnotes}}
       #(and (page-published page)
             {{footer {id copy-notice}}
              #(copyright (page-published page) (page-updated page))})}

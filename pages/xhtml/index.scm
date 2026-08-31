@@ -21,9 +21,12 @@
    Check out {{a {href /blogroll.xml}} my blogroll} to see who I follow.}
   #(link-heading 2 "where-to-find-me" "Where To Find Me")
   {ul
-   {li {{a {href ./atom.xml}} My Atom feed.}}
-   {li {{a {href https://github.com/jack-faller}} On Github.}}
-   {li {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
+   {li
+    {{a {href ./atom.xml}} My Atom feed.}}
+   {li
+    {{a {rel me} {href https://github.com/jack-faller}} On Github.}}
+   {li
+    {{a {rel me} {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
   {{h2 {class headinglink}}
    Activity
    ({{a {href ./atom.xml}}

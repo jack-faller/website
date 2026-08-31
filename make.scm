@@ -467,8 +467,8 @@
   (iter:for-each!
    (scheme-file-functor
     (lambda (name file)
-      (write-form-to-file
-       (string-append path name "." ext) language (loader file))))
+      (define out-path (string-append path name "." ext))
+      (write-form-to-file out-path language (loader file out-path))))
    (dirfiles (string-append "pages/" ext))))
 
 (define public-posts (make-fluid))
@@ -501,14 +501,27 @@
   (fluid-set! public-posts (build-posts "posts"))
 
   (build-pages "xhtml" "" xhtml
-               (lambda (file)
+               (lambda (file out-path)
                  (doclisp-template
                   (load file)
                   #:path (make-path "" (basename file ".scm") "xhtml")
                   #:source file)))
-  (build-pages "xsl" "" xslt
-                (lambda (file)
-                  (cons "just" (assoc-ref (cdr (load file)) "body"))))
+  (build-pages
+   "xsl" "" xslt
+   (lambda (file out-path)
+     (define data (cdr (load file)))
+     (define dummy-source (assoc-ref data "dummy-source"))
+     (when dummy-source
+       (display dummy-source)
+       (newline)
+       (write-form-to-file
+        (car dummy-source) xml
+        {just
+         {? xml version="1.0" encoding="UTF-8"}
+         ;; BUG: putting "/#out-path" causes the final quote to be eaten.
+         {? xml-stylesheet type="text/xsl" {join href="/ #out-path "}}
+         {dummy}}))
+     (cons "just" (assoc-ref data "body"))))
   ;; TODO: archives.
   ;; Design: archive by published date, every 32 items a new page is created.
   ;; The current document contains the 32 most recently updated documents, and

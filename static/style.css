@@ -193,6 +193,11 @@ math {
 	/* text-align: right; */
 }
 
+.feed-frame {
+	width: 100%;
+	height: 15.6em;
+}
+
 #not-by-ai-badge {
 	bottom: 10px;
 	left: 10px;

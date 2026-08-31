@@ -24,14 +24,12 @@
    {li {{a {href ./atom.xml}} My Atom feed.}}
    {li {{a {href https://github.com/jack-faller}} On Github.}}
    {li {{a {href mailto:jack.t.faller@gmail.com}} jack.t.faller@gmail.com}}}
-  {h2
-   {{a {href ./atom.xml} {class headinglink}}
-    Activity
-    {{img {src /images/feed-icon.svg}
-          {style height: 0.75em\; position: relative\; top: 0.05em\;}
-          {alt Logo used to represent RSS and ATOM feeds.}}}}}
-  {ul
-   #@(->> (iter:take 30 (iter:from-list (fluid-ref public-posts)))
-          (iter:map (page->li #t))
-          (iter:collect! (sink:list)))
-   {li {{a {href ./atom.xml}} See more …}}}}}
+  {{h2 {class headinglink}}
+   Activity
+   ({{a {href ./atom.xml}}
+     see more}
+    {{a {href ./atom.xml}}
+     {{img {src /images/feed-icon.svg}
+           {style height: 0.75em\; position: relative\; top: 0.05em\;}
+           {alt Logo used to represent RSS and ATOM feeds.}}}})}
+  {{iframe {class feed-frame} {src /feed-recent.xml}}}}}
